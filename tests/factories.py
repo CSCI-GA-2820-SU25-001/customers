@@ -15,7 +15,9 @@ class CustomerFactory(factory.Factory):
         model = Customer
 
     id = factory.Sequence(lambda n: n)
-    name = factory.Faker("name")
+    first_name = factory.Faker("first_name")
+    last_name = factory.Faker("last_name")
     address = factory.Faker("address")
     email = factory.Faker("email")
+    phone_number = factory.Faker("phone_number")
 

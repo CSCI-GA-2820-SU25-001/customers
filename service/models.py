@@ -26,20 +26,20 @@ class Customer(db.Model):
     # Table Schema
     ##################################################
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(63))
+    first_name = db.Column(db.String(63))
+    last_name = db.Column(db.String(63))
     address = db.Column(db.String(256))
-    email = db.Column(db.String(24))
-
-    # Todo: Place the rest of your schema here...
+    phone_number = db.Column(db.String(20))
+    email = db.Column(db.String(120))
 
     def __repr__(self):
-        return f"<Customer {self.name} id=[{self.id}]>"
+        return f"<Customer {self.first_name} {self.last_name} id=[{self.id}]>"
 
     def create(self):
         """
         Creates a Customer to the database
         """
-        logger.info("Creating %s", self.name)
+        logger.info("Creating %s", self.first_name, self.last_name)
         self.id = None  # pylint: disable=invalid-name
         try:
             db.session.add(self)
@@ -75,10 +75,12 @@ class Customer(db.Model):
     def serialize(self):
         """Serializes a Customer into a dictionary"""
         return {
-            "id": self.id, 
-            "name": self.name,
-            "address": self.address,
-            "email": self.email
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "phone_number": self.phone_number,
+            "address": self.address
             }
 
     def deserialize(self, data):
@@ -89,9 +91,11 @@ class Customer(db.Model):
             data (dict): A dictionary containing the resource data
         """
         try:
-            self.name = data["name"]
-            self.address = data["address"]
+            self.first_name = data["first_name"]
+            self.last_name = data["last_name"]
             self.email = data["email"]
+            self.phone_number = data.get("phone_number")
+            self.address = data.get("address")
         except AttributeError as error:
             raise DataValidationError("Invalid attribute: " + error.args[0]) from error
         except KeyError as error:
@@ -122,11 +126,8 @@ class Customer(db.Model):
         return cls.query.session.get(cls, by_id)
 
     @classmethod
-    def find_by_name(cls, name):
-        """Returns all Customers with the given name
-
-        Args:
-            name (string): the name of the Customers you want to match
+    def find_by_email(cls, email):
+        """Returns a Customer with the given email
         """
-        logger.info("Processing name query for %s ...", name)
-        return cls.query.filter(cls.name == name)
+        logger.info("Processing email query for %s ...", email)
+        return cls.query.filter(cls.email == email).first()
