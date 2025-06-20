@@ -38,7 +38,6 @@ def index():
         status.HTTP_200_OK,
     )
 
-
 ######################################################################
 # READ CUSTOMER
 ######################################################################
@@ -47,16 +46,15 @@ def get_customer(customer_id):
     """
     Retrieve a single Customer
 
-    This endpoint will return a Customer based on it's id
+    This endpoint will return a customer based on it's id
     """
-    app.logger.info("Request for customer with id: %s", customer_id)
+    app.logger.info("Request to Retrieve a customer with id [%s]", customer_id)
+
+    # Attempt to find the customer and abort if not found
     customer = Customer.find(customer_id)
     if not customer:
-        abort(
-            status.HTTP_404_NOT_FOUND,
-            f"Customer with id '{customer_id}' was not found.",
-        )
-    app.logger.info("Returning customer: %s", customer.first_name)
-    return jsonify(customer.serialize()), status.HTTP_200_OK
+        abort(status.HTTP_404_NOT_FOUND, f"Customer with id '{customer_id}' was not found.")
 
+    app.logger.info("Returning customer: %s", customer.name)
+    return jsonify(customer.serialize()), status.HTTP_200_OK
 
