@@ -40,7 +40,23 @@ def index():
 
 
 ######################################################################
-#  R E S T   A P I   E N D P O I N T S
+# READ CUSTOMER
 ######################################################################
+@app.route("/customers/<int:customer_id>", methods=["GET"])
+def get_customer(customer_id):
+    """
+    Retrieve a single Customer
 
-# Todo: Place your REST API code here ...
+    This endpoint will return a Customer based on it's id
+    """
+    app.logger.info("Request for customer with id: %s", customer_id)
+    customer = Customer.find(customer_id)
+    if not customer:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Customer with id '{customer_id}' was not found.",
+        )
+    app.logger.info("Returning customer: %s", customer.first_name)
+    return jsonify(customer.serialize()), status.HTTP_200_OK
+
+

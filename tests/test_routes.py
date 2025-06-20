@@ -25,10 +25,12 @@ from unittest import TestCase
 from wsgi import app
 from service.common import status
 from service.models import db, Customer
+from factories import CustomerFactory
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
 )
+BASE_URL = "/customers"
 
 
 ######################################################################
@@ -71,3 +73,31 @@ class TestYourResourceService(TestCase):
         """It should call the home page"""
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+    def test_read_customer_exists(self):
+        """It should read a customer that exists"""
+        test_customer = CustomerFactory()
+        logging.debug("Looking for customer with ID: %d", test_customer.id)
+        response = self.client.get(f"{BASE_URL}/{test_customer.id}")
+        
+        # Check the response
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.content_type, "application/json")
+        
+        # Check the returned data
+        data = response.get_json()
+        self.assertEqual(data["id"], test_customer.id)
+        self.assertEqual(data["first_name"], test_customer.first_name)
+        self.assertEqual(data["last_name"], test_customer.last_name)
+        self.assertEqual(data["email"], test_customer.email)
+        self.assertEqual(data["phone_number"], test_customer.phone_number)
+        self.assertEqual(data["address"], test_customer.address)
+
+        
+    def test_read_customer_not_exist(self):
+        """It should return a False assertion for finding a customer that doesn't exist"""
+        customer_id = 0
+        logging.debug("Looking for customer with ID: %d", customer_id)
+        response = self.client.get(f"{BASE_URL}/{customer_id}")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
