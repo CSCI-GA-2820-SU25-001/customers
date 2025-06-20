@@ -23,7 +23,7 @@ and Delete Customer
 
 from flask import jsonify, request, url_for, abort
 from flask import current_app as app  # Import Flask application
-from service.models import Customer
+from service.models import Customer, DataValidationError
 from service.common import status  # HTTP Status Codes
 
 
@@ -98,3 +98,13 @@ def check_content_type(content_type) -> None:
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         f"Content-Type must be {content_type}",
     )
+
+
+######################################################################
+# Error Handlers -- added in add-create-customer
+######################################################################
+@app.errorhandler(DataValidationError)
+def handle_data_validation_error(error):
+    """Handles bad input data and returns a 400"""
+    app.logger.error("DataValidationError: %s", str(error))
+    return jsonify({"error": str(error)}), status.HTTP_400_BAD_REQUEST
