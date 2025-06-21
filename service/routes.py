@@ -23,7 +23,7 @@ and Delete Customer
 
 from flask import jsonify, request, url_for, abort
 from flask import current_app as app  # Import Flask application
-from service.models import Customer
+from service.models import Customer, DataValidationError
 from service.common import status  # HTTP Status Codes
 
 
@@ -103,3 +103,68 @@ def list_customers():
     results = [customer.serialize() for customer in customers]
     app.logger.info("Returning %d customers", len(results))
     return jsonify(results), status.HTTP_200_OK
+
+######################################################################
+# CREATE A NEW CUSTOMER
+######################################################################
+@app.route("/customers", methods=["POST"])
+def create_customers():
+    """
+    Create a Customer
+    This endpoint will create a Customer based the data in the body that is posted
+    """
+    app.logger.info("Request to Create a Customer...")
+    check_content_type("application/json")
+
+    customer = Customer()
+    # Get the data from the request and deserialize it
+    data = request.get_json()
+    app.logger.info("Processing: %s", data)
+    customer.deserialize(data)
+
+    # Save the new Customer to the database
+    customer.create()
+    app.logger.info("Customer with new id [%s] saved!", customer.id)
+
+    # Return the location of the new Customer
+
+    # todo: uncomment this code when get_customers is implemented
+    # location_url = url_for("get_customers", customer_id=customer.id, _external=True)
+    location_url = "unknown"
+    return (
+        jsonify(customer.serialize()),
+        status.HTTP_201_CREATED,
+        {"Location": location_url},
+    )
+
+
+######################################################################
+# Checks the ContentType of a request
+######################################################################
+def check_content_type(content_type) -> None:
+    """Checks that the media type is correct"""
+    if "Content-Type" not in request.headers:
+        app.logger.error("No Content-Type specified.")
+        abort(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            f"Content-Type must be {content_type}",
+        )
+
+    if request.headers["Content-Type"] == content_type:
+        return
+
+    app.logger.error("Invalid Content-Type: %s", request.headers["Content-Type"])
+    abort(
+        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        f"Content-Type must be {content_type}",
+    )
+
+
+######################################################################
+# Error Handlers -- added in add-create-customer
+######################################################################
+@app.errorhandler(DataValidationError)
+def handle_data_validation_error(error):
+    """Handles bad input data and returns a 400"""
+    app.logger.error("DataValidationError: %s", str(error))
+    return jsonify({"error": str(error)}), status.HTTP_400_BAD_REQUEST
