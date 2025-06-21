@@ -39,7 +39,7 @@ def index():
     )
 
 ######################################################################
-# READ CUSTOMER
+# GET CUSTOMER
 ######################################################################
 @app.route("/customers/<int:customer_id>", methods=["GET"])
 def get_customer(customer_id):
