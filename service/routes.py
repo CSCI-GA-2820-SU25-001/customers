@@ -38,10 +38,26 @@ def index():
         status.HTTP_200_OK,
     )
 
+######################################################################
+# GET CUSTOMER
+######################################################################
+@app.route("/customers/<int:customer_id>", methods=["GET"])
+def get_customer(customer_id):
+    """
+    Retrieve a single Customer
 
-######################################################################
-#  R E S T   A P I   E N D P O I N T S
-######################################################################
+    This endpoint will return a customer based on it's id
+    """
+    app.logger.info("Request to Retrieve a customer with id [%s]", customer_id)
+
+    # Attempt to find the customer and abort if not found
+    customer = Customer.find(customer_id)
+    if not customer:
+        abort(status.HTTP_404_NOT_FOUND, f"Customer with id '{customer_id}' was not found.")
+
+    app.logger.info("Returning customer: %s", customer.name)
+    return jsonify(customer.serialize()), status.HTTP_200_OK
+
 
 ######################################################################
 # DELETE A CUSTOMER

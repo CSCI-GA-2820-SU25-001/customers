@@ -75,6 +75,23 @@ class TestYourResourceService(TestCase):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
 
+    def test_get_customer_exists(self):
+        """It should read a customer that exists"""
+        test_customer = self._create_pets(1)[0]
+        response = self.client.get(f"{BASE_URL}/{test_customer.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(data["name"], test_customer.name)
+
+        
+    def test_get_customer_not_exist(self):
+        """It should return a False assertion for finding a customer that doesn't exist"""
+        response = self.client.get(f"{BASE_URL}/0")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        logging.debug("Response data = %s", data)
+        self.assertIn("was not found", data["message"])
+
     # ----------------------------------------------------------
     # TEST CREATE
     # ----------------------------------------------------------
