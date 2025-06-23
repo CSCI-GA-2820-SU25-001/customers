@@ -29,17 +29,19 @@ class Customer(db.Model):
     first_name = db.Column(db.String(63))
     last_name = db.Column(db.String(63))
     address = db.Column(db.String(256))
-    phone_number = db.Column(db.String(20))
+    phone_number = db.Column(db.String(50))
     email = db.Column(db.String(120))
+
 
     def __repr__(self):
         return f"<Customer {self.first_name} {self.last_name} id=[{self.id}]>"
+
 
     def create(self):
         """
         Creates a Customer to the database
         """
-        logger.info("Creating %s", self.first_name, self.last_name)
+        logger.info("Creating %s %s", self.first_name, self.last_name)
         self.id = None  # pylint: disable=invalid-name
         try:
             db.session.add(self)
@@ -49,11 +51,12 @@ class Customer(db.Model):
             logger.error("Error creating record: %s", self)
             raise DataValidationError(e) from e
 
+
     def update(self):
         """
         Updates a Customer to the database
         """
-        logger.info("Saving %s", self.name)
+        logger.info("Updating %s %s", self.first_name, self.last_name)
         try:
             db.session.commit()
         except Exception as e:
@@ -61,9 +64,10 @@ class Customer(db.Model):
             logger.error("Error updating record: %s", self)
             raise DataValidationError(e) from e
 
+
     def delete(self):
         """Removes a Customer from the data store"""
-        logger.info("Deleting %s", self.name)
+        logger.info("Deleting %s %s", self.first_name, self.last_name)
         try:
             db.session.delete(self)
             db.session.commit()
@@ -82,6 +86,7 @@ class Customer(db.Model):
             "phone_number": self.phone_number,
             "address": self.address
             }
+
 
     def deserialize(self, data):
         """
@@ -109,6 +114,7 @@ class Customer(db.Model):
             ) from error
         return self
 
+
     ##################################################
     # CLASS METHODS
     ##################################################
@@ -131,3 +137,4 @@ class Customer(db.Model):
         """
         logger.info("Processing email query for %s ...", email)
         return cls.query.filter(cls.email == email).first()
+    
