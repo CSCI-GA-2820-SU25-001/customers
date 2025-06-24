@@ -21,11 +21,9 @@ TestCustomer API Service Test Suite
 # pylint: disable=duplicate-code
 import os
 import logging
+from urllib.parse import quote_plus
 from unittest import TestCase
 from wsgi import app
-from urllib.parse import quote_plus
-from service.common import status
-from unittest.mock import patch, MagicMock
 from service.common import status
 from service.models import db, Customer
 from .factories import CustomerFactory
@@ -90,7 +88,6 @@ class TestCustomerService(TestCase):
     ######################################################################
     #  P L A C E   T E S T   C A S E S   H E R E
     ######################################################################
-
     def test_index(self):
         """It should call the home page and return root metadata"""  # root metadata is all the endpoints at the bottom
         resp = self.client.get("/")

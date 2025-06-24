@@ -32,10 +32,8 @@ class Customer(db.Model):
     phone_number = db.Column(db.String(50))
     email = db.Column(db.String(120))
 
-
     def __repr__(self):
         return f"<Customer {self.first_name} {self.last_name} id=[{self.id}]>"
-
 
     def create(self):
         """
@@ -51,7 +49,6 @@ class Customer(db.Model):
             logger.error("Error creating record: %s", self)
             raise DataValidationError(e) from e
 
-
     def update(self):
         """
         Updates a Customer to the database
@@ -63,7 +60,6 @@ class Customer(db.Model):
             db.session.rollback()
             logger.error("Error updating record: %s", self)
             raise DataValidationError(e) from e
-
 
     def delete(self):
         """Removes a Customer from the data store"""
@@ -84,9 +80,8 @@ class Customer(db.Model):
             "last_name": self.last_name,
             "email": self.email,
             "phone_number": self.phone_number,
-            "address": self.address
-            }
-
+            "address": self.address,
+        }
 
     def deserialize(self, data):
         """
@@ -114,11 +109,9 @@ class Customer(db.Model):
             ) from error
         return self
 
-
     ##################################################
     # CLASS METHODS
     ##################################################
-
     @classmethod
     def all(cls):
         """Returns all of the Customers in the database"""
@@ -133,8 +126,6 @@ class Customer(db.Model):
 
     @classmethod
     def find_by_email(cls, email):
-        """Returns a Customer with the given email
-        """
+        """Returns a Customer with the given email"""
         logger.info("Processing email query for %s ...", email)
         return cls.query.filter(cls.email == email).first()
-    

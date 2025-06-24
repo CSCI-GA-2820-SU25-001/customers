@@ -22,10 +22,10 @@ Test cases for Customer Model
 import os
 import logging
 from unittest import TestCase
+from unittest.mock import patch
 from wsgi import app
 from service.models import Customer, DataValidationError, db
 from .factories import CustomerFactory
-from unittest.mock import patch
 
 
 DATABASE_URI = os.getenv(
@@ -80,7 +80,7 @@ class TestCustomer(TestCase):
         self.assertEqual(data.address, customer.address)
         self.assertEqual(data.email, customer.email)
         self.assertEqual(data.phone_number, customer.phone_number)
-            
+
     def test_read_a_customer(self):
         """It should Read a customer"""
         customer = CustomerFactory()
@@ -95,7 +95,7 @@ class TestCustomer(TestCase):
         self.assertEqual(found_customer.address, customer.address)
         self.assertEqual(found_customer.email, customer.email)
         self.assertEqual(found_customer.phone_number, customer.phone_number)
-     
+
     def test_update_a_customer(self):
         """It should Update a Customer"""
         customer = CustomerFactory()
@@ -175,6 +175,7 @@ class TestCustomer(TestCase):
         data = "this is not a dictionary"
         customer = Customer()
         self.assertRaises(DataValidationError, customer.deserialize, data)
+
 
 ######################################################################
 #  T E S T   E X C E P T I O N   H A N D L E R S
@@ -280,6 +281,3 @@ class TestModelQueries(TestCase):
         email = customers[0].email
         found = Customer.find_by_email(email)
         self.assertEqual(found.email, email)
-
-
-
