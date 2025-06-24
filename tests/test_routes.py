@@ -35,6 +35,7 @@ DATABASE_URI = os.getenv(
 )
 BASE_URL = "/customers"
 
+
 ######################################################################
 #  T E S T   C A S E S
 ######################################################################
@@ -77,7 +78,9 @@ class TestCustomerService(TestCase):
             test_customer = CustomerFactory()
             response = self.client.post(BASE_URL, json=test_customer.serialize())
             self.assertEqual(
-                response.status_code, status.HTTP_201_CREATED, "Could not create test customer"
+                response.status_code,
+                status.HTTP_201_CREATED,
+                "Could not create test customer",
             )
             new_customer = response.get_json()
             test_customer.id = new_customer["id"]
@@ -89,11 +92,22 @@ class TestCustomerService(TestCase):
     ######################################################################
 
     def test_index(self):
-        """It should call the home page"""
+        """It should call the home page and return root metadata"""  # root metadata is all the endpoints at the bottom
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.get_json()
         self.assertEqual(data["name"], "Customer REST API Service")
+
+        self.assertIn("version", data)
+        self.assertIn("paths", data)
+
+        # Added in add-route-route issue: check that all key endpoints exist
+        self.assertIn("create", data["paths"])
+        self.assertIn("list_all", data["paths"])
+        self.assertIn("read_one", data["paths"])
+        self.assertIn("update", data["paths"])
+        self.assertIn("delete", data["paths"])
+        self.assertIn("find_by_email", data["paths"])
 
     def test_health(self):
         """It should be healthy"""
@@ -116,7 +130,7 @@ class TestCustomerService(TestCase):
 
     # ----------------------------------------------------------
     # TEST READ
-    # ---------------------------------------------------------- 
+    # ----------------------------------------------------------
 
     def test_get_customer_exists(self):
         """It should read a customer that exists"""
@@ -179,7 +193,9 @@ class TestCustomerService(TestCase):
         new_customer = response.get_json()
         logging.debug(new_customer)
         new_customer["first_name"] = "Updated"
-        response = self.client.put(f"{BASE_URL}/{new_customer['id']}", json=new_customer)
+        response = self.client.put(
+            f"{BASE_URL}/{new_customer['id']}", json=new_customer
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         updated_customer = response.get_json()
         self.assertEqual(updated_customer["first_name"], "Updated")
@@ -187,9 +203,9 @@ class TestCustomerService(TestCase):
     def test_update_customer_not_found(self):
         """It should return 404 when updating non-existent customer"""
         customer_data = {
-            "first_name": "Test", 
-            "last_name": "User", 
-            "email": "test@test.com"
+            "first_name": "Test",
+            "last_name": "User",
+            "email": "test@test.com",
         }
         response = self.client.put(f"{BASE_URL}/999", json=customer_data)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -230,16 +246,14 @@ class TestCustomerService(TestCase):
 
     def test_query_by_email_not_found(self):
         """It should return empty list for non-existent email"""
-        response = self.client.get(
-            BASE_URL, query_string="email=notfound@example.com"
-        )
+        response = self.client.get(BASE_URL, query_string="email=notfound@example.com")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
 
-######################################################################
-#  T E S T   S A D   P A T H S
-######################################################################
+    ######################################################################
+    #  T E S T   S A D   P A T H S
+    ######################################################################
 
     def test_create_customer_missing_each_required_field(self):
         """It should return 400 if any required field is missing"""
@@ -276,7 +290,9 @@ class TestCustomerService(TestCase):
 
     def test_update_customer_wrong_content_type(self):
         """It should not Update a Customer with wrong content type"""
-        response = self.client.put(f"{BASE_URL}/1", data="Not JSON", content_type="text/html")
+        response = self.client.put(
+            f"{BASE_URL}/1", data="Not JSON", content_type="text/html"
+        )
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     def test_update_customer_bad_data(self):
