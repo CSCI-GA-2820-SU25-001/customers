@@ -1,33 +1,11 @@
-# NYU DevOps Project Template
+# Customers
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Language-Python-blue.svg)](https://python.org/)
 
-This is a skeleton you can use to start your projects.
-
-**Note:** _Feel free to overwrite this `README.md` file with the one that describes your project._
-
 ## Overview
 
-This project template contains starter code for your class project. The `/service` folder contains your `models.py` file for your model and a `routes.py` file for your service. The `/tests` folder has test case starter code for testing the model and the service separately. All you need to do is add your functionality. You can use the [lab-flask-tdd](https://github.com/nyu-devops/lab-flask-tdd) for code examples to copy from.
-
-## Automatic Setup
-
-The best way to use this repo is to start your own repo using it as a git template. To do this just press the green **Use this template** button in GitHub and this will become the source for your repository.
-
-## Manual Setup
-
-You can also clone this repository and then copy and paste the starter code into your project repo folder on your local computer. Be careful not to copy over your own `README.md` file so be selective in what you copy.
-
-There are 4 hidden files that you will need to copy manually if you use the Mac Finder or Windows Explorer to copy files from this folder into your repo folder.
-
-These should be copied using a bash shell as follows:
-
-```bash
-    cp .gitignore  ../<your_repo_folder>/
-    cp .flaskenv ../<your_repo_folder>/
-    cp .gitattributes ../<your_repo_folder>/
-```
+The `/service` folder contains the `models.py` file for your model and a `routes.py` file for the customer service. The `/tests` folder has test case starter code for testing the model and the service separately.
 
 ## Contents
 
@@ -58,6 +36,147 @@ tests/                     - test cases package
 ├── test_cli_commands.py   - test suite for the CLI
 ├── test_models.py         - test suite for business models
 └── test_routes.py         - test suite for service routes
+```
+
+## Available Calls
+
+The Customer REST API Service provides the following endpoints:
+
+### Root URL
+- **GET /** - Returns information about the service and available paths
+  - Returns: 200 OK with service information
+
+### Health Check
+- **GET /health** - Returns the health status of the service
+  - Returns: 200 OK with "Healthy" message
+
+### Customer Management
+
+#### Create Customer
+- **POST /customers** - Create a new customer
+  - Content-Type: application/json
+  - Request Body:
+    ```json
+    {
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john.doe@example.com",
+      "phone_number": "1234567890",
+      "address": "123 Main St, City, State, ZIP"
+    }
+    ```
+  - Returns: 201 CREATED with the created customer data and Location header
+
+#### List Customers
+- **GET /customers** - List all customers
+  - Returns: 200 OK with list of all customers
+- **GET /customers?email={email}** - Find a customer by email
+  - Returns: 200 OK with matching customer or empty list if not found
+
+#### Get Customer
+- **GET /customers/{id}** - Get a customer by ID
+  - Returns: 200 OK with customer data
+  - Returns: 404 NOT FOUND if customer doesn't exist
+
+#### Update Customer
+- **PUT /customers/{id}** - Update a customer
+  - Content-Type: application/json
+  - Request Body: Same as Create Customer
+  - Returns: 200 OK with updated customer data
+  - Returns: 404 NOT FOUND if customer doesn't exist
+
+#### Delete Customer
+- **DELETE /customers/{id}** - Delete a customer
+  - Returns: 204 NO CONTENT if successful
+  - Returns: 204 NO CONTENT if customer doesn't exist (idempotent)
+
+## Running and Testing the Code
+
+### Prerequisites
+- Python 3.9 or higher
+- pip and pipenv installed
+- Git
+
+### Setup
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd customers
+   ```
+
+2. Set up Python virtual environment:
+   ```bash
+   pipenv install
+   ```
+
+3. Create a `.env` file by copying the example:
+   ```bash
+   cp dot-env-example .env
+   ```
+
+### Running the Service Locally
+
+#### Using Honcho
+The easiest way to run the service is using the Makefile:
+```bash
+make run
+```
+
+This uses Honcho to start the service, which will be available at http://localhost:8080.
+
+#### Manual Run
+Alternatively, you can run the service directly:
+```bash
+flask run
+```
+
+### Running Tests
+To run all tests with coverage reporting:
+```bash
+make test
+```
+
+This will run all unit tests and generate a coverage report ensuring at least 95% code coverage.
+
+### Development Commands
+
+- **Install dependencies**:
+  ```bash
+  make install
+  ```
+
+- **Run linter**:
+  ```bash
+  make lint
+  ```
+
+- **Generate a new secret key**:
+  ```bash
+  make secret
+  ```
+
+### Docker and Kubernetes Deployment
+
+#### Build Docker Image
+```bash
+make build
+```
+
+#### Push to Registry
+```bash
+make push
+```
+
+#### Deploy to Kubernetes (local development)
+```bash
+make cluster      # Create a local K3D Kubernetes cluster
+make deploy       # Deploy the service to Kubernetes
+```
+
+#### Clean Up
+```bash
+make clean        # Remove Docker build cache
+make cluster-rm   # Delete the Kubernetes cluster
 ```
 
 ## License
