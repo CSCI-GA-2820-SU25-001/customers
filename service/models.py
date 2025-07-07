@@ -31,6 +31,7 @@ class Customer(db.Model):
     address = db.Column(db.String(256))
     phone_number = db.Column(db.String(50))
     email = db.Column(db.String(120))
+    suspend = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"<Customer {self.first_name} {self.last_name} id=[{self.id}]>"
