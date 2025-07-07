@@ -231,7 +231,6 @@ class TestCustomerService(TestCase):
     # ----------------------------------------------------------
     def test_query_by_email_contains(self):
         """It should Query Customers by email containing substring"""
-        # Create customers with specific emails for testing
         customer1 = CustomerFactory(email="john.doe@example.com")
         customer2 = CustomerFactory(email="jane.doe@company.org")
         customer3 = CustomerFactory(email="bob.smith@example.com")
@@ -240,7 +239,6 @@ class TestCustomerService(TestCase):
             response = self.client.post(BASE_URL, json=customer.serialize())
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # Test partial email search
         response = self.client.get(BASE_URL, query_string="email_contains=doe")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
@@ -274,7 +272,6 @@ class TestCustomerService(TestCase):
 
     def test_query_by_domain(self):
         """It should Query Customers by email domain"""
-        # Create customers with different domains
         customer1 = CustomerFactory(email="user1@example.com")
         customer2 = CustomerFactory(email="user2@example.com") 
         customer3 = CustomerFactory(email="user3@company.org")
@@ -365,9 +362,6 @@ class TestCustomerService(TestCase):
         response = self.client.put(f"{BASE_URL}/{test_customer.id}", json=bad_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    # ----------------------------------------------------------
-    # TEST QUERY SAD PATHS
-    # ----------------------------------------------------------
     def test_query_invalid_email_format(self):
         """It should return 400 for invalid email format"""
         response = self.client.get(BASE_URL, query_string="email=invalid-email")
