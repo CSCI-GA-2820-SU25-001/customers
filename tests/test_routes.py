@@ -247,6 +247,52 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
+    
+    # ----------------------------------------------------------
+    # TEST SUSPEND CUSTOMER
+    # ----------------------------------------------------------
+    def test_suspend_customer_success(self):
+        """It should suspend a customer successfully"""
+        test_customer = self._create_customers(1)[0]
+        # Ensure not suspended initially
+        self.assertFalse(test_customer.suspended if hasattr(test_customer, "suspended") else False)
+        # Suspend the customer
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertTrue(data["suspended"])
+        # Fetch again to confirm in DB
+        response = self.client.get(f"{BASE_URL}/{test_customer.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertTrue(data["suspended"])
+
+    def test_suspend_customer_not_found(self):
+        """It should return 404 when suspending a non-existent customer"""
+        response = self.client.put(f"{BASE_URL}/99999/suspend")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        self.assertIn("was not found", data["message"])
+
+    def test_suspend_customer_already_suspended(self):
+        """It should allow suspending an already suspended customer (idempotent)"""
+        test_customer = self._create_customers(1)[0]
+        # Suspend once
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Suspend again
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertTrue(data["suspended"])
+
+    def test_suspend_customer_wrong_method(self):
+        """It should not allow GET or POST on suspend endpoint"""
+        test_customer = self._create_customers(1)[0]
+        response = self.client.get(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        response = self.client.post(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     ######################################################################
     #  T E S T   S A D   P A T H S
