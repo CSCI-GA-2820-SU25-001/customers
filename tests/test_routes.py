@@ -229,21 +229,86 @@ class TestCustomerService(TestCase):
     # ----------------------------------------------------------
     # TEST QUERY
     # ----------------------------------------------------------
-    def test_query_by_email(self):
-        """It should Query Customers by email"""
-        customers = self._create_customers(3)
-        test_email = customers[0].email
-        response = self.client.get(
-            BASE_URL, query_string=f"email={quote_plus(test_email)}"
-        )
+    def test_query_by_email_contains(self):
+        """It should Query Customers by email containing substring"""
+        # Create customers with specific emails for testing
+        customer1 = CustomerFactory(email="john.doe@example.com")
+        customer2 = CustomerFactory(email="jane.doe@company.org")
+        customer3 = CustomerFactory(email="bob.smith@example.com")
+        
+        for customer in [customer1, customer2, customer3]:
+            response = self.client.post(BASE_URL, json=customer.serialize())
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Test partial email search
+        response = self.client.get(BASE_URL, query_string="email_contains=doe")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 2)
+        emails = [customer["email"] for customer in data]
+        self.assertIn("john.doe@example.com", emails)
+        self.assertIn("jane.doe@company.org", emails)
+
+    def test_query_by_email_contains_case_insensitive(self):
+        """It should Query Customers by email containing substring (case insensitive)"""
+        customer = CustomerFactory(email="John.Doe@Example.Com")
+        response = self.client.post(BASE_URL, json=customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        response = self.client.get(BASE_URL, query_string="email_contains=JOHN")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["email"], test_email)
+        self.assertEqual(data[0]["email"], "John.Doe@Example.Com")
 
-    def test_query_by_email_not_found(self):
-        """It should return empty list for non-existent email"""
-        response = self.client.get(BASE_URL, query_string="email=notfound@example.com")
+    def test_query_by_email_contains_no_results(self):
+        """It should return empty list when no emails contain substring"""
+        customer = CustomerFactory(email="test@example.com")
+        response = self.client.post(BASE_URL, json=customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        response = self.client.get(BASE_URL, query_string="email_contains=nonexistent")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_by_domain(self):
+        """It should Query Customers by email domain"""
+        # Create customers with different domains
+        customer1 = CustomerFactory(email="user1@example.com")
+        customer2 = CustomerFactory(email="user2@example.com") 
+        customer3 = CustomerFactory(email="user3@company.org")
+        
+        for customer in [customer1, customer2, customer3]:
+            response = self.client.post(BASE_URL, json=customer.serialize())
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        response = self.client.get(BASE_URL, query_string="domain=example.com")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 2)
+        for customer in data:
+            self.assertTrue(customer["email"].endswith("@example.com"))
+
+    def test_query_by_domain_case_insensitive(self):
+        """It should Query Customers by domain (case insensitive)"""
+        customer = CustomerFactory(email="user@Example.Com")
+        response = self.client.post(BASE_URL, json=customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        response = self.client.get(BASE_URL, query_string="domain=EXAMPLE.COM")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["email"], "user@Example.Com")
+
+    def test_query_by_domain_no_results(self):
+        """It should return empty list when no customers have the domain"""
+        customer = CustomerFactory(email="test@example.com")
+        response = self.client.post(BASE_URL, json=customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        response = self.client.get(BASE_URL, query_string="domain=nonexistent.com")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
@@ -299,3 +364,74 @@ class TestCustomerService(TestCase):
         bad_data = {"first_name": "Updated"}  # Missing last_name and email
         response = self.client.put(f"{BASE_URL}/{test_customer.id}", json=bad_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ----------------------------------------------------------
+    # TEST QUERY SAD PATHS
+    # ----------------------------------------------------------
+    def test_query_invalid_email_format(self):
+        """It should return 400 for invalid email format"""
+        response = self.client.get(BASE_URL, query_string="email=invalid-email")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("Invalid email format", data["message"])
+
+    def test_query_invalid_email_format_missing_at(self):
+        """It should return 400 for email missing @ symbol"""
+        response = self.client.get(BASE_URL, query_string="email=testexample.com")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("Invalid email format", data["message"])
+
+    def test_query_invalid_domain_format(self):
+        """It should return 400 for invalid domain format"""
+        response = self.client.get(BASE_URL, query_string="domain=invalid-domain")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("Invalid domain format", data["message"])
+
+    def test_query_invalid_domain_format_no_extension(self):
+        """It should return 400 for domain without extension"""
+        response = self.client.get(BASE_URL, query_string="domain=example")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("Invalid domain format", data["message"])
+
+    def test_query_multiple_filters_email_and_domain(self):
+        """It should return 400 when both email and domain filters are provided"""
+        response = self.client.get(
+            BASE_URL, 
+            query_string="email=test@example.com&domain=example.com"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("only one filter", data["message"])
+
+    def test_query_multiple_filters_email_and_contains(self):
+        """It should return 400 when both email and email_contains are provided"""
+        response = self.client.get(
+            BASE_URL,
+            query_string="email=test@example.com&email_contains=test"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("only one filter", data["message"])
+
+    def test_query_multiple_filters_contains_and_domain(self):
+        """It should return 400 when both email_contains and domain are provided"""
+        response = self.client.get(
+            BASE_URL,
+            query_string="email_contains=test&domain=example.com"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("only one filter", data["message"])
+
+    def test_query_all_three_filters(self):
+        """It should return 400 when all three filters are provided"""
+        response = self.client.get(
+            BASE_URL,
+            query_string="email=test@example.com&email_contains=test&domain=example.com"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        data = response.get_json()
+        self.assertIn("only one filter", data["message"])

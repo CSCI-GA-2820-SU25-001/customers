@@ -281,3 +281,124 @@ class TestModelQueries(TestCase):
         email = customers[0].email
         found = Customer.find_by_email(email)
         self.assertEqual(found.email, email)
+
+    def test_find_by_email_contains(self):
+        """It should Find Customers by email containing a string"""
+        # Create customers with specific emails
+        customer1 = CustomerFactory(email="john.doe@example.com")
+        customer2 = CustomerFactory(email="jane.doe@company.com") 
+        customer3 = CustomerFactory(email="bob.smith@example.com")
+        customer4 = CustomerFactory(email="alice.johnson@test.org")
+        
+        for customer in [customer1, customer2, customer3, customer4]:
+            customer.create()
+        
+        # Test finding by partial email match
+        found = Customer.find_by_email_contains("doe")
+        self.assertEqual(len(found), 2)
+        emails = [customer.email for customer in found]
+        self.assertIn("john.doe@example.com", emails)
+        self.assertIn("jane.doe@company.com", emails)
+        
+        # Test finding by domain part
+        found = Customer.find_by_email_contains("example.com")
+        self.assertEqual(len(found), 2)
+        
+        # Test case insensitive search
+        found = Customer.find_by_email_contains("DOE")
+        self.assertEqual(len(found), 2)
+        
+        # Test no matches
+        found = Customer.find_by_email_contains("nonexistent")
+        self.assertEqual(len(found), 0)
+
+    def test_find_by_domain(self):
+        """It should Find Customers by email domain"""
+        # Create customers with different domains
+        customer1 = CustomerFactory(email="user1@example.com")
+        customer2 = CustomerFactory(email="user2@example.com")
+        customer3 = CustomerFactory(email="user3@company.org")
+        customer4 = CustomerFactory(email="user4@test.net")
+        
+        for customer in [customer1, customer2, customer3, customer4]:
+            customer.create()
+        
+        # Test finding by domain
+        found = Customer.find_by_domain("example.com")
+        self.assertEqual(len(found), 2)
+        for customer in found:
+            self.assertTrue(customer.email.endswith("@example.com"))
+        
+        # Test finding by different domain
+        found = Customer.find_by_domain("company.org")
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].email, "user3@company.org")
+        
+        # Test case insensitive domain search
+        found = Customer.find_by_domain("EXAMPLE.COM")
+        self.assertEqual(len(found), 2)
+        
+        # Test no matches
+        found = Customer.find_by_domain("nonexistent.com")
+        self.assertEqual(len(found), 0)
+
+    def test_validate_email_format(self):
+        """It should validate email format correctly"""
+        # Valid emails
+        valid_emails = [
+            "user@example.com",
+            "test.email@domain.org",
+            "user+tag@example.co.uk",
+            "user123@test-domain.com",
+            "a@b.co"
+        ]
+        
+        for email in valid_emails:
+            self.assertTrue(Customer.validate_email_format(email), 
+                          f"Email {email} should be valid")
+        
+        # Invalid emails
+        invalid_emails = [
+            "invalid-email",
+            "@example.com", 
+            "user@",
+            "user@.com",
+            "user..double@example.com",
+            "",
+            "user@domain",
+            "user name@example.com"
+        ]
+        
+        for email in invalid_emails:
+            self.assertFalse(Customer.validate_email_format(email), 
+                           f"Email {email} should be invalid")
+
+    def test_validate_domain_format(self):
+        """It should validate domain format correctly"""
+        # Valid domains
+        valid_domains = [
+            "example.com",
+            "test.org", 
+            "sub.domain.co.uk",
+            "my-company.net",
+            "a.co"
+        ]
+        
+        for domain in valid_domains:
+            self.assertTrue(Customer.validate_domain_format(domain), 
+                          f"Domain {domain} should be valid")
+        
+        # Invalid domains
+        invalid_domains = [
+            "invalid-domain",
+            ".com",
+            "domain.",
+            "",
+            "domain",
+            "domain..com",
+            "domain .com"
+        ]
+        
+        for domain in invalid_domains:
+            self.assertFalse(Customer.validate_domain_format(domain), 
+                           f"Domain {domain} should be invalid")

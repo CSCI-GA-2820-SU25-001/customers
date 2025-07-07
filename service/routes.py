@@ -176,22 +176,54 @@ def list_customers():
     app.logger.info("Request for customer list")
 
     customers = []
+    
     # Parse any arguments from the query string
     email = request.args.get("email")
+    email_contains = request.args.get("email_contains")
+    domain = request.args.get("domain")
+
+    # Check that only one filter is provided
+    filters_provided = sum([bool(email), bool(email_contains), bool(domain)])
+    if filters_provided > 1:
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            "Please provide only one filter: email, email_contains, or domain"
+        )
 
     if email:
-        app.logger.info("Find by email: %s", email)
+        # Validate email format
+        if not Customer.validate_email_format(email):
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"Invalid email format: {email}"
+            )
+        app.logger.info("Find by exact email: %s", email)
         customer = Customer.find_by_email(email)
         customers = [customer] if customer else []
+        
+    elif email_contains:
+        # No validation needed for partial string
+        app.logger.info("Find by email containing: %s", email_contains)
+        customers = Customer.find_by_email_contains(email_contains)
+        
+    elif domain:
+        # Validate domain format
+        if not Customer.validate_domain_format(domain):
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"Invalid domain format: {domain}"
+            )
+        app.logger.info("Find by domain: %s", domain)
+        customers = Customer.find_by_domain(domain)
+        
     else:
-        app.logger.info("Find all")
+        app.logger.info("Find all customers")
         customers = Customer.all()
 
     results = [customer.serialize() for customer in customers]
     app.logger.info("Returning %d customers", len(results))
     return jsonify(results), status.HTTP_200_OK
-
-
+    
 ######################################################################
 # Checks the ContentType of a request
 ######################################################################

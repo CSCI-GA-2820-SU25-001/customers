@@ -129,3 +129,37 @@ class Customer(db.Model):
         """Returns a Customer with the given email"""
         logger.info("Processing email query for %s ...", email)
         return cls.query.filter(cls.email == email).first()
+    
+    @classmethod
+    def find_by_email_contains(cls, email_part):
+        """Returns all Customers whose email contains the given string"""
+        logger.info("Processing email contains query for %s ...", email_part)
+        return cls.query.filter(cls.email.ilike(f'%{email_part}%')).all()
+
+    @classmethod
+    def find_by_domain(cls, domain):
+        """Returns all Customers with the given email domain"""
+        logger.info("Processing domain query for %s ...", domain)
+        return cls.query.filter(cls.email.ilike(f'%@{domain}')).all()
+        
+    @classmethod
+    def validate_email_format(cls, email):
+        """Basic email format validation"""
+        if not email or '..' in email or ' ' in email:
+            return False
+        import re
+        pattern = r'^[a-zA-Z0-9][a-zA-Z0-9._%+-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}$'
+        # Handle single character local/domain parts
+        simple_pattern = r'^[a-zA-Z0-9]@[a-zA-Z0-9]\.[a-zA-Z]{2,}$'
+        return re.match(pattern, email) is not None or re.match(simple_pattern, email) is not None
+
+    @classmethod
+    def validate_domain_format(cls, domain):
+        """Basic domain format validation"""
+        if not domain or '..' in domain or ' ' in domain or domain.startswith('.') or domain.endswith('.'):
+            return False
+        import re
+        pattern = r'^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}$'
+        # Handle simple domains like a.co
+        simple_pattern = r'^[a-zA-Z0-9]\.[a-zA-Z]{2,}$'
+        return re.match(pattern, domain) is not None or re.match(simple_pattern, domain) is not None
