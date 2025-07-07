@@ -250,7 +250,7 @@ class TestModelQueries(TestCase):
 
     def setUp(self):
         """This runs before each test"""
-        db.session.query(Customer).delete()  # clean up the last tests
+        db.session.query(Customer).delete()
         db.session.commit()
 
     def tearDown(self):

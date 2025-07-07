@@ -191,7 +191,6 @@ def list_customers():
         )
 
     if email:
-        # Validate email format
         if not Customer.validate_email_format(email):
             abort(
                 status.HTTP_400_BAD_REQUEST,
@@ -202,12 +201,10 @@ def list_customers():
         customers = [customer] if customer else []
         
     elif email_contains:
-        # No validation needed for partial string
         app.logger.info("Find by email containing: %s", email_contains)
         customers = Customer.find_by_email_contains(email_contains)
         
     elif domain:
-        # Validate domain format
         if not Customer.validate_domain_format(domain):
             abort(
                 status.HTTP_400_BAD_REQUEST,
@@ -223,7 +220,7 @@ def list_customers():
     results = [customer.serialize() for customer in customers]
     app.logger.info("Returning %d customers", len(results))
     return jsonify(results), status.HTTP_200_OK
-    
+
 ######################################################################
 # Checks the ContentType of a request
 ######################################################################
