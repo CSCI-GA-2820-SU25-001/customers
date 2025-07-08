@@ -247,6 +247,92 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
+
+    def test_query_by_first_name(self):
+        """It should Query Customers by first name"""
+        customers = self._create_customers(5)
+        test_first_name = customers[0].first_name
+        response = self.client.get(
+            BASE_URL, query_string=f"first_name={quote_plus(test_first_name)}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertGreaterEqual(len(data), 1)
+        for customer in data:
+            self.assertEqual(customer["first_name"], test_first_name)
+
+    def test_query_by_last_name(self):
+        """It should Query Customers by last name"""
+        customers = self._create_customers(5)
+        test_last_name = customers[0].last_name
+        response = self.client.get(
+            BASE_URL, query_string=f"last_name={quote_plus(test_last_name)}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertGreaterEqual(len(data), 1)
+        for customer in data:
+            self.assertEqual(customer["last_name"], test_last_name)
+
+    def test_query_by_phone_number(self):
+        """It should Query Customers by phone number"""
+        customers = self._create_customers(3)
+        test_phone = customers[0].phone_number
+        response = self.client.get(
+            BASE_URL, query_string=f"phone_number={quote_plus(test_phone)}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["phone_number"], test_phone)
+
+    def test_query_by_multiple_parameters(self):
+        """It should Query Customers by multiple parameters"""
+        customers = self._create_customers(5)
+        test_customer = customers[0]
+        query_string = f"first_name={quote_plus(test_customer.first_name)}&last_name={quote_plus(test_customer.last_name)}"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertGreaterEqual(len(data), 1)
+        # Check that all returned customers match both criteria
+        for customer in data:
+            self.assertEqual(customer["first_name"], test_customer.first_name)
+            self.assertEqual(customer["last_name"], test_customer.last_name)
+
+    def test_query_email_and_first_name_combined(self):
+        """It should Query Customers by email and first name combined"""
+        customers = self._create_customers(3)
+        test_customer = customers[0]
+        query_string = f"email={quote_plus(test_customer.email)}&first_name={quote_plus(test_customer.first_name)}"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["email"], test_customer.email)
+        self.assertEqual(data[0]["first_name"], test_customer.first_name)
+
+    def test_query_all_parameters_combined(self):
+        """It should Query Customers by all parameters combined"""
+        customers = self._create_customers(3)
+        test_customer = customers[0]
+        query_string = (
+            f"first_name={quote_plus(test_customer.first_name)}&"
+            f"last_name={quote_plus(test_customer.last_name)}&"
+            f"email={quote_plus(test_customer.email)}&"
+            f"phone_number={quote_plus(test_customer.phone_number)}"
+        )
+        response = self.client.get(BASE_URL, query_string=query_string)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["first_name"], test_customer.first_name)
+        self.assertEqual(data[0]["last_name"], test_customer.last_name)
+        self.assertEqual(data[0]["email"], test_customer.email)
+        self.assertEqual(data[0]["phone_number"], test_customer.phone_number)
     
     # ----------------------------------------------------------
     # TEST SUSPEND CUSTOMER
@@ -293,6 +379,46 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         response = self.client.post(f"{BASE_URL}/{test_customer.id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    # ----------------------------------------------------------
+    # TEST SERIALIZATION
+    # ----------------------------------------------------------
+    def test_get_customer_includes_suspended_field(self):
+        """It should include suspended field in customer response"""
+        test_customer = self._create_customers(1)[0]
+        response = self.client.get(f"{BASE_URL}/{test_customer.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        
+        # Check that suspended field is present
+        self.assertIn("suspended", data)
+        self.assertIsInstance(data["suspended"], bool)
+        # By default, customers should not be suspended
+        self.assertFalse(data["suspended"])
+
+    def test_list_customers_includes_suspended_field(self):
+        """It should include suspended field in list customers response"""
+        self._create_customers(3)
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        
+        # Check that all customers have suspended field
+        for customer in data:
+            self.assertIn("suspended", customer)
+            self.assertIsInstance(customer["suspended"], bool)
+
+    def test_create_customer_includes_suspended_field(self):
+        """It should include suspended field in create customer response"""
+        test_customer = CustomerFactory()
+        response = self.client.post(BASE_URL, json=test_customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        data = response.get_json()
+        self.assertIn("suspended", data)
+        self.assertIsInstance(data["suspended"], bool)
+        # New customers should default to not suspended
+        self.assertFalse(data["suspended"])
 
     ######################################################################
     #  T E S T   S A D   P A T H S
@@ -345,3 +471,121 @@ class TestCustomerService(TestCase):
         bad_data = {"first_name": "Updated"}  # Missing last_name and email
         response = self.client.put(f"{BASE_URL}/{test_customer.id}", json=bad_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_query_by_first_name_not_found(self):
+        """It should return empty list for non-existent first name"""
+        # Create some customers but search for a name that doesn't exist
+        self._create_customers(3)
+        fake_name = CustomerFactory().first_name + "_NONEXISTENT"
+        response = self.client.get(BASE_URL, query_string=f"first_name={quote_plus(fake_name)}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_by_last_name_not_found(self):
+        """It should return empty list for non-existent last name"""
+        # Create some customers but search for a name that doesn't exist
+        self._create_customers(3)
+        fake_name = CustomerFactory().last_name + "_NONEXISTENT"
+        response = self.client.get(BASE_URL, query_string=f"last_name={quote_plus(fake_name)}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_by_phone_number_not_found(self):
+        """It should return empty list for non-existent phone number"""
+        # Create some customers but search for a phone that doesn't exist
+        self._create_customers(3)
+        fake_phone = CustomerFactory().phone_number + "999"
+        response = self.client.get(BASE_URL, query_string=f"phone_number={quote_plus(fake_phone)}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_with_multiple_parameters_not_found(self):
+        """It should return empty list when multiple parameters don't match"""
+        # Create some customers but search for combination that doesn't exist
+        self._create_customers(3)
+        fake_first = CustomerFactory().first_name + "_FAKE"
+        fake_last = CustomerFactory().last_name + "_FAKE"
+        query_string = f"first_name={quote_plus(fake_first)}&last_name={quote_plus(fake_last)}"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_with_partial_match_not_found(self):
+        """It should return empty list when only some parameters match"""
+        customers = self._create_customers(2)
+        test_customer = customers[0]
+        # Use real first name but faker-generated fake last name
+        fake_last_name = CustomerFactory().last_name + "_NOMATCH"
+        query_string = f"first_name={quote_plus(test_customer.first_name)}&last_name={quote_plus(fake_last_name)}"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_email_and_phone_mismatch(self):
+        """It should return empty list when email and phone don't belong to same customer"""
+        customers = self._create_customers(2)
+        customer1 = customers[0]
+        customer2 = customers[1]
+        # Use email from customer1 and phone from customer2 - should find nothing
+        query_string = f"email={quote_plus(customer1.email)}&phone_number={quote_plus(customer2.phone_number)}"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_with_empty_parameter_values(self):
+        """It should handle empty query parameter values"""
+        # Create some customers first
+        customers_created = self._create_customers(3)
+        response = self.client.get(BASE_URL, query_string="first_name=&last_name=")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        # Should return all customers since empty parameters are ignored
+        self.assertEqual(len(data), len(customers_created))
+
+    def test_query_with_url_encoded_special_names(self):
+        """It should handle URL-encoded names with spaces correctly"""
+        # Create a customer using factory data and modify to ensure it has special characters
+        customer = CustomerFactory()
+        base_name = customer.first_name
+        # Create a name with space using factory base + modification
+        customer.first_name = f"{base_name} Test"  # Factory name + space + Test
+        response = self.client.post(BASE_URL, json=customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # Query using URL encoding for the space
+        test_name = customer.first_name  # Use the actual name we just created
+        response = self.client.get(
+            BASE_URL, query_string=f"first_name={quote_plus(test_name)}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["first_name"], test_name)
+
+    def test_query_with_url_encoded_last_name_spaces(self):
+        """It should handle URL-encoded last names with spaces correctly"""
+        # Test with last name containing spaces using factory data
+        customer = CustomerFactory()
+        base_last_name = customer.last_name
+        # Create a last name with space using factory base
+        customer.last_name = f"{base_last_name} III"  # Factory name + space + suffix
+        response = self.client.post(BASE_URL, json=customer.serialize())
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        test_name = customer.last_name
+        response = self.client.get(
+            BASE_URL, query_string=f"last_name={quote_plus(test_name)}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["last_name"], test_name)
