@@ -191,6 +191,32 @@ def list_customers():
     app.logger.info("Returning %d customers", len(results))
     return jsonify(results), status.HTTP_200_OK
 
+######################################################################
+# SUSPEND A CUSTOMER
+######################################################################
+@app.route("/customers/<int:customer_id>/suspend", methods=["PUT"])
+def suspend_customer(customer_id):
+    """
+    Suspend a Customer
+    This endpoint will suspend an existing customer's account
+    """
+    app.logger.info("Request to suspend customer with id [%s]", customer_id)
+
+    # Find the customer
+    customer = Customer.find(customer_id)
+    if not customer:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Customer with id '{customer_id}' was not found.",
+        )
+
+    # Add suspended field to customer data
+    customer.suspended = True
+    customer.update()
+
+    app.logger.info("Customer with ID [%s] has been suspended", customer_id)
+    return jsonify(customer.serialize()), status.HTTP_200_OK
+
 
 ######################################################################
 # Checks the ContentType of a request
