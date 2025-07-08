@@ -1,11 +1,9 @@
 name: CI
 on:
   push:
-    branches:
-      - master
+    branches: [ "master" ]
   pull_request:
-    branches:
-      - master
+    branches: [ "master" ]
 
 jobs:
   build:
@@ -22,6 +20,8 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres1
           POSTGRES_DB: customer
+        ports:
+          - 5432:5432
         # Set health checks to wait until redis has started
         options: >-
           --health-cmd "pg_isready -U postgres"
