@@ -191,6 +191,7 @@ def list_customers():
     app.logger.info("Returning %d customers", len(results))
     return jsonify(results), status.HTTP_200_OK
 
+
 ######################################################################
 # SUSPEND A CUSTOMER
 ######################################################################
@@ -215,6 +216,33 @@ def suspend_customer(customer_id):
     customer.update()
 
     app.logger.info("Customer with ID [%s] has been suspended", customer_id)
+    return jsonify(customer.serialize()), status.HTTP_200_OK
+
+
+######################################################################
+# ACTIVATE A CUSTOMER
+######################################################################
+@app.route("/customers/<int:customer_id>/activate", methods=["PUT"])
+def activate_customer(customer_id):
+    """
+    Activate a Customer
+    This endpoint will activate (unsuspend) an existing customer's account
+    """
+    app.logger.info("Request to activate customer with id [%s]", customer_id)
+
+    # Find the customer
+    customer = Customer.find(customer_id)
+    if not customer:
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Customer with id '{customer_id}' was not found.",
+        )
+
+    # Set suspended to False to activate
+    customer.suspended = False
+    customer.update()
+
+    app.logger.info("Customer with ID [%s] has been activated", customer_id)
     return jsonify(customer.serialize()), status.HTTP_200_OK
 
 
