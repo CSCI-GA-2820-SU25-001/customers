@@ -191,6 +191,7 @@ def list_customers():
     app.logger.info("Returning %d customers", len(results))
     return jsonify(results), status.HTTP_200_OK
 
+
 ######################################################################
 # SUSPEND A CUSTOMER
 ######################################################################

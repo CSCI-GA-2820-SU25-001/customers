@@ -247,15 +247,18 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
-    
+
     # ----------------------------------------------------------
     # TEST SUSPEND CUSTOMER
     # ----------------------------------------------------------
+
     def test_suspend_customer_success(self):
         """It should suspend a customer successfully"""
         test_customer = self._create_customers(1)[0]
         # Ensure not suspended initially
-        self.assertFalse(test_customer.suspended if hasattr(test_customer, "suspended") else False)
+        self.assertFalse(
+            test_customer.suspended if hasattr(test_customer, "suspended") else False
+        )
         # Suspend the customer
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
