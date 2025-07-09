@@ -48,10 +48,13 @@ jobs:
           # Run pylint to catch other PEP8 errors
           pylint service tests --max-line-length=127
 
-      - name: Run unit tests with PyTest
-        run: pytest --pspec --cov=service --cov-fail-under=95 --cov-report=xml
+      - name: Run unit tests with pytest
+        run: |
+          pytest --pspec --cov=service --cov-fail-under=95 --disable-warnings --cov-report=xml
         env:
-          DATABASE_URI: postgresql+psycopg://postgres:postgres1@postgres:5432/customer
+          FLASK_APP: "wsgi:app"
+          DATABASE_URI: "postgresql+psycopg://postgres:postgres1@postgres:5432/customer"
+
 
       ######################################################################
       # Create a CODECOV_TOKEN in Settings->Secrets and variables->Actions
