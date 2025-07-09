@@ -381,6 +381,50 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     # ----------------------------------------------------------
+    # TEST ACTIVATE CUSTOMER
+    # ----------------------------------------------------------
+    def test_activate_customer_success(self):
+        """It should activate (unsuspend) a customer successfully"""
+        test_customer = self._create_customers(1)[0]
+        # Suspend the customer first
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Activate the customer
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/activate")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertFalse(data["suspended"])
+        # Fetch again to confirm in DB
+        response = self.client.get(f"{BASE_URL}/{test_customer.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertFalse(data["suspended"])
+
+    def test_activate_customer_not_found(self):
+        """It should return 404 when activating a non-existent customer"""
+        response = self.client.put(f"{BASE_URL}/99999/activate")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        data = response.get_json()
+        self.assertIn("was not found", data["message"])
+
+    def test_activate_customer_already_active(self):
+        """It should allow activating an already active customer (idempotent)"""
+        test_customer = self._create_customers(1)[0]
+        # Activate (should already be active)
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/activate")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertFalse(data["suspended"])
+
+    def test_activate_customer_wrong_method(self):
+        """It should not allow GET or POST on activate endpoint"""
+        test_customer = self._create_customers(1)[0]
+        response = self.client.get(f"{BASE_URL}/{test_customer.id}/activate")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        response = self.client.post(f"{BASE_URL}/{test_customer.id}/activate")
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    # ----------------------------------------------------------
     # TEST SERIALIZATION
     # ----------------------------------------------------------
     def test_get_customer_includes_suspended_field(self):
@@ -419,6 +463,7 @@ class TestCustomerService(TestCase):
         self.assertIsInstance(data["suspended"], bool)
         # New customers should default to not suspended
         self.assertFalse(data["suspended"])
+
 
     ######################################################################
     #  T E S T   S A D   P A T H S

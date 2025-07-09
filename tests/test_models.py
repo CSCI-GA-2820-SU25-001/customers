@@ -176,6 +176,45 @@ class TestCustomer(TestCase):
         customer = Customer()
         self.assertRaises(DataValidationError, customer.deserialize, data)
 
+    def test_activate_sets_suspended_false(self):
+        """It should set suspended to False when activate is called"""
+        customer = Customer(
+            first_name="Jane",
+            last_name="Doe",
+            email="jane@example.com",
+            phone_number="1234567890",
+            address="123 Main St",
+            suspended=True,
+        )
+        customer.create()
+        self.assertTrue(customer.suspended)
+        customer.suspended = False
+        customer.update()
+        refreshed = Customer.find(customer.id)
+        self.assertFalse(refreshed.suspended)
+
+    def test_activate_idempotent(self):
+        """Calling activate on an already active customer should keep suspended False"""
+        customer = Customer(
+            first_name="Active",
+            last_name="User",
+            email="active@example.com",
+            phone_number="5555555555",
+            address="789 Main St",
+            suspended=False,
+        )
+        customer.create()
+        self.assertFalse(customer.suspended)
+        customer.suspended = False
+        customer.update()
+        refreshed = Customer.find(customer.id)
+        self.assertFalse(refreshed.suspended)
+
+    def test_activate_nonexistent_customer(self):
+        """Activating a non-existent customer should not throw but return None"""
+        customer = Customer.find(99999)
+        self.assertIsNone(customer)
+
 
 ######################################################################
 #  T E S T   E X C E P T I O N   H A N D L E R S
