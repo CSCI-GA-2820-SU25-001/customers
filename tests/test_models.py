@@ -176,6 +176,45 @@ class TestCustomer(TestCase):
         customer = Customer()
         self.assertRaises(DataValidationError, customer.deserialize, data)
 
+    def test_activate_sets_suspended_false(self):
+        """It should set suspended to False when activate is called"""
+        customer = Customer(
+            first_name="Jane",
+            last_name="Doe",
+            email="jane@example.com",
+            phone_number="1234567890",
+            address="123 Main St",
+            suspended=True,
+        )
+        customer.create()
+        self.assertTrue(customer.suspended)
+        customer.suspended = False
+        customer.update()
+        refreshed = Customer.find(customer.id)
+        self.assertFalse(refreshed.suspended)
+
+    def test_activate_idempotent(self):
+        """Calling activate on an already active customer should keep suspended False"""
+        customer = Customer(
+            first_name="Active",
+            last_name="User",
+            email="active@example.com",
+            phone_number="5555555555",
+            address="789 Main St",
+            suspended=False,
+        )
+        customer.create()
+        self.assertFalse(customer.suspended)
+        customer.suspended = False
+        customer.update()
+        refreshed = Customer.find(customer.id)
+        self.assertFalse(refreshed.suspended)
+
+    def test_activate_nonexistent_customer(self):
+        """Activating a non-existent customer should not throw but return None"""
+        customer = Customer.find(99999)
+        self.assertIsNone(customer)
+
 
 ######################################################################
 #  T E S T   E X C E P T I O N   H A N D L E R S
@@ -281,3 +320,61 @@ class TestModelQueries(TestCase):
         email = customers[0].email
         found = Customer.find_by_email(email)
         self.assertEqual(found.email, email)
+
+    def test_find_by_first_name(self):
+        """It should Find Customers by First Name"""
+        customers = CustomerFactory.create_batch(10)
+        for customer in customers:
+            customer.create()
+
+        # Get the first customer's first name to search for
+        first_name = customers[0].first_name
+        found = Customer.find_by_first_name(first_name)
+
+        # There might be multiple customers with same first name
+        self.assertGreaterEqual(len(found), 1)
+        for customer in found:
+            self.assertEqual(customer.first_name, first_name)
+
+    def test_find_by_last_name(self):
+        """It should Find Customers by Last Name"""
+        customers = CustomerFactory.create_batch(10)
+        for customer in customers:
+            customer.create()
+
+        # Get the first customer's last name to search for
+        last_name = customers[0].last_name
+        found = Customer.find_by_last_name(last_name)
+
+        self.assertGreaterEqual(len(found), 1)
+        for customer in found:
+            self.assertEqual(customer.last_name, last_name)
+
+    def test_find_by_phone_number(self):
+        """It should Find a Customer by Phone Number"""
+        customers = CustomerFactory.create_batch(10)
+        for customer in customers:
+            customer.create()
+
+        # Get the first customer's phone number to search for
+        phone_number = customers[0].phone_number
+        found = Customer.find_by_phone_number(phone_number)
+
+        # Phone numbers should be unique, so expect exactly one result
+        self.assertIsNotNone(found)
+        self.assertEqual(found.phone_number, phone_number)
+
+    def test_find_by_first_name_not_found(self):
+        """It should return empty list when first name not found"""
+        found = Customer.find_by_first_name("NonExistentFirstName")
+        self.assertEqual(len(found), 0)
+
+    def test_find_by_last_name_not_found(self):
+        """It should return empty list when last name not found"""
+        found = Customer.find_by_last_name("NonExistentLastName")
+        self.assertEqual(len(found), 0)
+
+    def test_find_by_phone_number_not_found(self):
+        """It should return None when phone number not found"""
+        found = Customer.find_by_phone_number("999-999-9999")
+        self.assertIsNone(found)
