@@ -173,20 +173,38 @@ def delete_customers(customer_id):
 @app.route("/customers", methods=["GET"])
 def list_customers():
     """Returns all of the Customers"""
+    
     app.logger.info("Request for customer list")
-
-    customers = []
     # Parse any arguments from the query string
     email = request.args.get("email")
+    first_name = request.args.get("first_name")
+    last_name = request.args.get("last_name")
+    phone_number = request.args.get("phone_number")
 
+    # Start with base query
+    query = Customer.query
+
+    # Apply filters based on query parameters
     if email:
         app.logger.info("Find by email: %s", email)
-        customer = Customer.find_by_email(email)
-        customers = [customer] if customer else []
-    else:
-        app.logger.info("Find all")
-        customers = Customer.all()
+        query = query.filter(Customer.email == email)
+    
+    if first_name:
+        app.logger.info("Find by first_name: %s", first_name)
+        query = query.filter(Customer.first_name == first_name)
+    
+    if last_name:
+        app.logger.info("Find by last_name: %s", last_name)
+        query = query.filter(Customer.last_name == last_name)
+    
+    if phone_number:
+        app.logger.info("Find by phone_number: %s", phone_number)
+        query = query.filter(Customer.phone_number == phone_number)
 
+    # Execute the query to get filtered results
+    customers = query.all()
+
+    # Serialize the results
     results = [customer.serialize() for customer in customers]
     app.logger.info("Returning %d customers", len(results))
     return jsonify(results), status.HTTP_200_OK

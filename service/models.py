@@ -82,6 +82,7 @@ class Customer(db.Model):
             "email": self.email,
             "phone_number": self.phone_number,
             "address": self.address,
+            "suspended": self.suspended
         }
 
     def deserialize(self, data):
@@ -130,3 +131,21 @@ class Customer(db.Model):
         """Returns a Customer with the given email"""
         logger.info("Processing email query for %s ...", email)
         return cls.query.filter(cls.email == email).first()
+
+    @classmethod
+    def find_by_first_name(cls, first_name):
+        """Returns all Customers with the given first name"""
+        logger.info("Processing first_name query for %s ...", first_name)
+        return cls.query.filter(cls.first_name == first_name).all()
+
+    @classmethod
+    def find_by_last_name(cls, last_name):
+        """Returns all Customers with the given last name"""
+        logger.info("Processing last_name query for %s ...", last_name)
+        return cls.query.filter(cls.last_name == last_name).all()
+
+    @classmethod
+    def find_by_phone_number(cls, phone_number):
+        """Returns a Customer with the given phone number"""
+        logger.info("Processing phone_number query for %s ...", phone_number)
+        return cls.query.filter(cls.phone_number == phone_number).first()
