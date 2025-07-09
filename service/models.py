@@ -82,7 +82,7 @@ class Customer(db.Model):
             "email": self.email,
             "phone_number": self.phone_number,
             "address": self.address,
-            "suspended": self.suspended
+            "suspended": self.suspended,
         }
 
     def deserialize(self, data):

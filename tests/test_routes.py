@@ -292,7 +292,7 @@ class TestCustomerService(TestCase):
         test_customer = customers[0]
         query_string = f"first_name={quote_plus(test_customer.first_name)}&last_name={quote_plus(test_customer.last_name)}"
         response = self.client.get(BASE_URL, query_string=query_string)
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertGreaterEqual(len(data), 1)
@@ -307,7 +307,7 @@ class TestCustomerService(TestCase):
         test_customer = customers[0]
         query_string = f"email={quote_plus(test_customer.email)}&first_name={quote_plus(test_customer.first_name)}"
         response = self.client.get(BASE_URL, query_string=query_string)
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 1)
@@ -325,7 +325,7 @@ class TestCustomerService(TestCase):
             f"phone_number={quote_plus(test_customer.phone_number)}"
         )
         response = self.client.get(BASE_URL, query_string=query_string)
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 1)
@@ -333,7 +333,6 @@ class TestCustomerService(TestCase):
         self.assertEqual(data[0]["last_name"], test_customer.last_name)
         self.assertEqual(data[0]["email"], test_customer.email)
         self.assertEqual(data[0]["phone_number"], test_customer.phone_number)
-    
 
     # ----------------------------------------------------------
     # TEST SUSPEND CUSTOMER
@@ -437,7 +436,7 @@ class TestCustomerService(TestCase):
         response = self.client.get(f"{BASE_URL}/{test_customer.id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
-        
+
         # Check that suspended field is present
         self.assertIn("suspended", data)
         self.assertIsInstance(data["suspended"], bool)
@@ -450,7 +449,7 @@ class TestCustomerService(TestCase):
         response = self.client.get(BASE_URL)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
-        
+
         # Check that all customers have suspended field
         for customer in data:
             self.assertIn("suspended", customer)
@@ -461,13 +460,12 @@ class TestCustomerService(TestCase):
         test_customer = CustomerFactory()
         response = self.client.post(BASE_URL, json=test_customer.serialize())
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        
+
         data = response.get_json()
         self.assertIn("suspended", data)
         self.assertIsInstance(data["suspended"], bool)
         # New customers should default to not suspended
         self.assertFalse(data["suspended"])
-
 
     ######################################################################
     #  T E S T   S A D   P A T H S
@@ -526,7 +524,9 @@ class TestCustomerService(TestCase):
         # Create some customers but search for a name that doesn't exist
         self._create_customers(3)
         fake_name = CustomerFactory().first_name + "_NONEXISTENT"
-        response = self.client.get(BASE_URL, query_string=f"first_name={quote_plus(fake_name)}")
+        response = self.client.get(
+            BASE_URL, query_string=f"first_name={quote_plus(fake_name)}"
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
@@ -536,7 +536,9 @@ class TestCustomerService(TestCase):
         # Create some customers but search for a name that doesn't exist
         self._create_customers(3)
         fake_name = CustomerFactory().last_name + "_NONEXISTENT"
-        response = self.client.get(BASE_URL, query_string=f"last_name={quote_plus(fake_name)}")
+        response = self.client.get(
+            BASE_URL, query_string=f"last_name={quote_plus(fake_name)}"
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
@@ -546,7 +548,9 @@ class TestCustomerService(TestCase):
         # Create some customers but search for a phone that doesn't exist
         self._create_customers(3)
         fake_phone = CustomerFactory().phone_number + "999"
-        response = self.client.get(BASE_URL, query_string=f"phone_number={quote_plus(fake_phone)}")
+        response = self.client.get(
+            BASE_URL, query_string=f"phone_number={quote_plus(fake_phone)}"
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
@@ -557,9 +561,11 @@ class TestCustomerService(TestCase):
         self._create_customers(3)
         fake_first = CustomerFactory().first_name + "_FAKE"
         fake_last = CustomerFactory().last_name + "_FAKE"
-        query_string = f"first_name={quote_plus(fake_first)}&last_name={quote_plus(fake_last)}"
+        query_string = (
+            f"first_name={quote_plus(fake_first)}&last_name={quote_plus(fake_last)}"
+        )
         response = self.client.get(BASE_URL, query_string=query_string)
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
@@ -572,7 +578,7 @@ class TestCustomerService(TestCase):
         fake_last_name = CustomerFactory().last_name + "_NOMATCH"
         query_string = f"first_name={quote_plus(test_customer.first_name)}&last_name={quote_plus(fake_last_name)}"
         response = self.client.get(BASE_URL, query_string=query_string)
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
@@ -585,7 +591,7 @@ class TestCustomerService(TestCase):
         # Use email from customer1 and phone from customer2 - should find nothing
         query_string = f"email={quote_plus(customer1.email)}&phone_number={quote_plus(customer2.phone_number)}"
         response = self.client.get(BASE_URL, query_string=query_string)
-        
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
@@ -609,7 +615,7 @@ class TestCustomerService(TestCase):
         customer.first_name = f"{base_name} Test"  # Factory name + space + Test
         response = self.client.post(BASE_URL, json=customer.serialize())
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        
+
         # Query using URL encoding for the space
         test_name = customer.first_name  # Use the actual name we just created
         response = self.client.get(

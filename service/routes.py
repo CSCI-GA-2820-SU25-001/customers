@@ -173,7 +173,7 @@ def delete_customers(customer_id):
 @app.route("/customers", methods=["GET"])
 def list_customers():
     """Returns all of the Customers"""
-    
+
     app.logger.info("Request for customer list")
     # Parse any arguments from the query string
     email = request.args.get("email")
@@ -188,15 +188,15 @@ def list_customers():
     if email:
         app.logger.info("Find by email: %s", email)
         query = query.filter(Customer.email == email)
-    
+
     if first_name:
         app.logger.info("Find by first_name: %s", first_name)
         query = query.filter(Customer.first_name == first_name)
-    
+
     if last_name:
         app.logger.info("Find by last_name: %s", last_name)
         query = query.filter(Customer.last_name == last_name)
-    
+
     if phone_number:
         app.logger.info("Find by phone_number: %s", phone_number)
         query = query.filter(Customer.phone_number == phone_number)

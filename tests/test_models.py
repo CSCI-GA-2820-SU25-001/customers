@@ -326,11 +326,11 @@ class TestModelQueries(TestCase):
         customers = CustomerFactory.create_batch(10)
         for customer in customers:
             customer.create()
-        
+
         # Get the first customer's first name to search for
         first_name = customers[0].first_name
         found = Customer.find_by_first_name(first_name)
-        
+
         # There might be multiple customers with same first name
         self.assertGreaterEqual(len(found), 1)
         for customer in found:
@@ -341,11 +341,11 @@ class TestModelQueries(TestCase):
         customers = CustomerFactory.create_batch(10)
         for customer in customers:
             customer.create()
-        
+
         # Get the first customer's last name to search for
         last_name = customers[0].last_name
         found = Customer.find_by_last_name(last_name)
-        
+
         self.assertGreaterEqual(len(found), 1)
         for customer in found:
             self.assertEqual(customer.last_name, last_name)
@@ -355,11 +355,11 @@ class TestModelQueries(TestCase):
         customers = CustomerFactory.create_batch(10)
         for customer in customers:
             customer.create()
-        
+
         # Get the first customer's phone number to search for
         phone_number = customers[0].phone_number
         found = Customer.find_by_phone_number(phone_number)
-        
+
         # Phone numbers should be unique, so expect exactly one result
         self.assertIsNotNone(found)
         self.assertEqual(found.phone_number, phone_number)
