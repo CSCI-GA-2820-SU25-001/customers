@@ -32,7 +32,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
-ID_PREFIX = "pet_"
+ID_PREFIX = "customer_"
 
 def save_screenshot(context: Any, filename: str) -> None:
     """Takes a snapshot of the web page for debugging and validation
@@ -166,8 +166,8 @@ def step_impl(context: Any, message: str) -> None:
 ##################################################################
 # This code works because of the following naming convention:
 # The id field for text input in the html is the element name
-# prefixed by ID_PREFIX so the Name field has an id='pet_name'
-# We can then lowercase the name and prefix with pet_ to get the id
+# prefixed by ID_PREFIX so the Name field has an id='customer_name'
+# We can then lowercase the name and prefix with customer_ to get the id
 ##################################################################
 
 
