@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Admin UI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { padding: 2rem; }
+        .container { max-width: 800px; }
+        .mt-2 { margin-top: 2rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Customer Administration</h1>
+    <form id="create-form" class="mb-4">
+        <h4>Create Customer</h4>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="first_name" placeholder="First Name" required>
+            </div>
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="last_name" placeholder="Last Name" required>
+            </div>
+        </div>
+        <div class="row g-2 mt-2">
+            <div class="col-md-6">
+                <input type="email" class="form-control" name="email" placeholder="Email" required>
+            </div>
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="phone_number" placeholder="Phone Number">
+            </div>
+        </div>
+        <div class="row g-2 mt-2">
+            <div class="col-12">
+                <input type="text" class="form-control" name="address" placeholder="Address">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-2">Create</button>
+    </form>
+    <div id="alert" class="alert d-none"></div>
+    <h4>Customer List</h4>
+    <table class="table table-bordered" id="customer-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Suspended</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+<script>
+const API_URL = '/customers';
+
+function showAlert(message, type='success') {
+    const alert = document.getElementById('alert');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    alert.classList.remove('d-none');
+    setTimeout(() => alert.classList.add('d-none'), 3000);
+}
+
+function fetchCustomers() {
+    fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.querySelector('#customer-table tbody');
+            tbody.innerHTML = '';
+            data.forEach(c => {
+                tbody.innerHTML += `
+                <tr>
+                    <td>${c.id}</td>
+                    <td>${c.first_name}</td>
+                    <td>${c.last_name}</td>
+                    <td>${c.email}</td>
+                    <td>${c.phone_number || ''}</td>
+                    <td>${c.address || ''}</td>
+                    <td>${c.suspended ? 'Yes' : 'No'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="suspendCustomer(${c.id})">Suspend</button>
+                        <button class="btn btn-sm btn-success" onclick="activateCustomer(${c.id})">Activate</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">Delete</button>
+                    </td>
+                </tr>`;
+            });
+        });
+}
+
+function createCustomer(e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        first_name: form.first_name.value,
+        last_name: form.last_name.value,
+        email: form.email.value,
+        phone_number: form.phone_number.value,
+        address: form.address.value
+    };
+    fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json().then(d => ({status: res.status, data: d})))
+    .then(result => {
+        if (result.status === 201) {
+            showAlert('Customer created successfully!');
+            fetchCustomers();
+            form.reset();
+        } else {
+            showAlert(result.data.error || 'Error creating customer', 'danger');
+        }
+    });
+}
+
+function suspendCustomer(id) {
+    fetch(`${API_URL}/${id}/suspend`, { method: 'PUT' })
+        .then(res => res.json().then(d => ({status: res.status, data: d})))
+        .then(result => {
+            if (result.status === 200) {
+                showAlert('Customer suspended.');
+                fetchCustomers();
+            } else {
+                showAlert(result.data.message || 'Error suspending customer', 'danger');
+            }
+        });
+}
+
+function activateCustomer(id) {
+    fetch(`${API_URL}/${id}/activate`, { method: 'PUT' })
+        .then(res => res.json().then(d => ({status: res.status, data: d})))
+        .then(result => {
+            if (result.status === 200) {
+                showAlert('Customer activated.');
+                fetchCustomers();
+            } else {
+                showAlert(result.data.message || 'Error activating customer', 'danger');
+            }
+        });
+}
+
+function deleteCustomer(id) {
+    fetch(`${API_URL}/${id}`, { method: 'DELETE' })
+        .then(res => {
+            if (res.status === 204) {
+                showAlert('Customer deleted.');
+                fetchCustomers();
+            } else {
+                res.json().then(d => showAlert(d.message || 'Error deleting customer', 'danger'));
+            }
+        });
+}
+
+document.getElementById('create-form').addEventListener('submit', createCustomer);
+window.onload = fetchCustomers;
+</script>
+</body>
+</html>
