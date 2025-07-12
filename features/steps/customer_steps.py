@@ -48,16 +48,13 @@ def step_impl(context):
         expect(context.resp.status_code).equal_to(HTTP_204_NO_CONTENT)
 
     # load the database with new customer
-    '''
-    def need to fix the rows, just placeholders for now
-    '''
     for row in context.table:
         payload = {
-            "firstName": row['first'],
-            "lastName": row['last'],
-            "emailAddress": row['email'],
-            "phoneNumber": row['phone'],
-            "address": row['address']
+            "first_name": row['First Name'],
+            "last_name": row['Last Name'],
+            "email": row['Email'],
+            "phone_number": row.get('Phone Number', ''),
+            "address": row.get('Address', '')
         }
         context.resp = requests.post(rest_endpoint, json=payload, timeout=WAIT_TIMEOUT)
         expect(context.resp.status_code).equal_to(HTTP_201_CREATED)
