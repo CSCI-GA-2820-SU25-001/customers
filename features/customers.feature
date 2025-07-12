@@ -22,3 +22,4 @@ Scenario: Create a Pet
     And I set the "Address" to "1234 testStreet testCity, testState 10009"
     And I press the "Create" button
     Then I should see the message "Customer created successfully!"
+    
