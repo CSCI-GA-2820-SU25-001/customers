@@ -144,7 +144,6 @@ def step_impl(context: Any, name: str) -> None:
     )
     assert found
 
-
 @then('I should not see "{name}" in the results')
 def step_impl(context: Any, name: str) -> None:
     element = context.driver.find_element(By.ID, "search_results")
