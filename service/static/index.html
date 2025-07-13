@@ -42,14 +42,41 @@
     <form id="search-form" class="mb-4">
         <h4>Search Customers</h4>
         <div class="row g-2">
-            <div class="col-md-6">
-                <input type="text" class="form-control" id="search_name" name="search_name" placeholder="First or Last Name">
+            <div class="col-md-2">
+                <input type="text" class="form-control" id="search_first_name" name="search_first_name" placeholder="First Name">
             </div>
-            <div class="col-md-6">
-                <input type="number" class="form-control" id="search_id" name="search_id" placeholder="Customer ID">
+            <div class="col-md-2">
+                <input type="text" class="form-control" id="search_last_name" name="search_last_name" placeholder="Last Name">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control" id="search_id" name="search_id" placeholder="ID">
+            </div>
+            <div class="col-md-3">
+                <input type="email" class="form-control" id="search_email" name="search_email" placeholder="Email">
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control" id="search_phone" name="search_phone" placeholder="Phone">
+            </div>
+            <div class="col-md-1">
+                <select class="form-select" id="search_suspended" name="search_suspended">
+                    <option value="">Suspended?</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
             </div>
         </div>
-        <button type="submit" class="btn btn-secondary mt-2" id="search-btn">Search</button>
+        <div class="row mt-2">
+            <div class="col-md-8">
+                <small class="text-muted" id="search-instructions">
+                    You can search by <b>First Name</b>, <b>Last Name</b>, <b>ID</b>, <b>Email</b>, <b>Phone</b>, or <b>Suspended</b> status.<br>
+                    Enter one or more fields. Leave all blank and click <b>Refresh</b> to view all customers.
+                </small>
+            </div>
+            <div class="col-md-4 text-end">
+                <button type="submit" class="btn btn-secondary" id="search-btn">Search</button>
+                <button type="button" class="btn btn-outline-primary ms-2" id="refresh-btn">Refresh</button>
+            </div>
+        </div>
     </form>
     <h4>Customer List</h4>
     <table class="table table-bordered" id="customer-table">
@@ -172,66 +199,93 @@ function deleteCustomer(id) {
 
 function searchCustomers(e) {
     e.preventDefault();
-    const name = document.getElementById('search_name').value.trim();
+    const first_name = document.getElementById('search_first_name').value.trim();
+    const last_name = document.getElementById('search_last_name').value.trim();
     const id = document.getElementById('search_id').value.trim();
-    let url = API_URL;
-    let query = [];
+    const email = document.getElementById('search_email').value.trim();
+    const phone = document.getElementById('search_phone').value.trim();
+    const suspended = document.getElementById('search_suspended').value;
+    const tbody = document.querySelector('#customer-table tbody');
+    tbody.innerHTML = '';
+    let found = false;
     if (id) {
-        url += `/${id}`;
-    } else if (name) {
-        query.push(`first_name=${encodeURIComponent(name.toLowerCase())}`);
-        url += `?${query.join('&')}`;
-    }
-    fetch(url)
-        .then(res => {
-            if (res.status === 404) {
-                showAlert('No users found', 'danger');
-                document.querySelector('#customer-table tbody').innerHTML = '';
-                return [];
-            }
-            return res.json();
-        })
-        .then(data => {
-            const tbody = document.querySelector('#customer-table tbody');
-            tbody.innerHTML = '';
-            if (!data || (Array.isArray(data) && data.length === 0)) {
-                showAlert('No users found', 'danger');
-                return;
-            }
-            if (!Array.isArray(data)) data = [data];
-            // Filter results case-insensitively for first or last name
-            if (name && !id) {
-                data = data.filter(c =>
-                    (c.first_name && c.first_name.toLowerCase().includes(name.toLowerCase())) ||
-                    (c.last_name && c.last_name.toLowerCase().includes(name.toLowerCase()))
-                );
-            }
-            if (data.length === 0) {
-                showAlert('No users found', 'danger');
-                return;
-            }
-            data.forEach(c => {
-                tbody.innerHTML += `
-                <tr>
-                    <td>${c.id}</td>
-                    <td>${c.first_name}</td>
-                    <td>${c.last_name}</td>
-                    <td>${c.email}</td>
-                    <td>${c.phone_number || ''}</td>
-                    <td>${c.address || ''}</td>
-                    <td>${c.suspended ? 'Yes' : 'No'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="suspendCustomer(${c.id})">Suspend</button>
-                        <button class="btn btn-sm btn-success" onclick="activateCustomer(${c.id})">Activate</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">Delete</button>
-                    </td>
-                </tr>`;
+        fetch(`${API_URL}/${id}`)
+            .then(res => {
+                if (res.status === 404) {
+                    showAlert('No users found', 'danger');
+                    return [];
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data || (Array.isArray(data) && data.length === 0)) {
+                    showAlert('No users found', 'danger');
+                    return;
+                }
+                if (!Array.isArray(data)) data = [data];
+                found = true;
+                renderCustomers(data);
             });
+        return;
+    }
+    let url = API_URL + '?';
+    let params = [];
+    if (first_name && last_name) {
+        // Both filled: require both to match
+        params.push(`first_name=${encodeURIComponent(first_name)}`);
+        params.push(`last_name=${encodeURIComponent(last_name)}`);
+    } else {
+        if (first_name) params.push(`first_name=${encodeURIComponent(first_name)}`);
+        if (last_name) params.push(`last_name=${encodeURIComponent(last_name)}`);
+    }
+    if (email) params.push(`email=${encodeURIComponent(email)}`);
+    if (phone) params.push(`phone_number=${encodeURIComponent(phone)}`);
+    if (suspended !== '') params.push(`suspended=${suspended}`);
+    if (params.length === 0) {
+        fetchCustomers();
+        return;
+    }
+    url += params.join('&');
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            if (!data || data.length === 0) {
+                showAlert('No users found', 'danger');
+                return;
+            }
+            renderCustomers(data);
         });
+}
+
+function renderCustomers(data) {
+    const tbody = document.querySelector('#customer-table tbody');
+    tbody.innerHTML = '';
+    data.forEach(c => {
+        tbody.innerHTML += `
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.first_name}</td>
+            <td>${c.last_name}</td>
+            <td>${c.email}</td>
+            <td>${c.phone_number || ''}</td>
+            <td>${c.address || ''}</td>
+            <td>${c.suspended ? 'Yes' : 'No'}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="suspendCustomer(${c.id})">Suspend</button>
+                <button class="btn btn-sm btn-success" onclick="activateCustomer(${c.id})">Activate</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">Delete</button>
+            </td>
+        </tr>`;
+    });
 }
 
 document.getElementById('create-form').addEventListener('submit', createCustomer);
 document.getElementById('search-form').addEventListener('submit', searchCustomers);
+document.getElementById('refresh-btn').addEventListener('click', function() {
+    document.getElementById('search-form').reset();
+    fetchCustomers();
+    showAlert('Showing all customers.', 'info');
+});
 window.onload = fetchCustomers;
 </script>
 </body>

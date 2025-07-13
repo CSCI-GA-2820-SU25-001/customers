@@ -193,12 +193,12 @@ def list_customers():
         query = query.filter(Customer.email == email)
 
     if first_name:
-        app.logger.info("Find by first_name: %s", first_name)
-        query = query.filter(Customer.first_name == first_name)
+        app.logger.info("Find by first_name (partial, case-insensitive): %s", first_name)
+        query = query.filter(Customer.first_name.ilike(f"%{first_name}%"))
 
     if last_name:
-        app.logger.info("Find by last_name: %s", last_name)
-        query = query.filter(Customer.last_name == last_name)
+        app.logger.info("Find by last_name (partial, case-insensitive): %s", last_name)
+        query = query.filter(Customer.last_name.ilike(f"%{last_name}%"))
 
     if phone_number:
         app.logger.info("Find by phone_number: %s", phone_number)
