@@ -149,3 +149,9 @@ class Customer(db.Model):
         """Returns a Customer with the given phone number"""
         logger.info("Processing phone_number query for %s ...", phone_number)
         return cls.query.filter(cls.phone_number == phone_number).first()
+
+    @classmethod
+    def find_by_suspended(cls, suspended):
+        """Returns all Customers with the given suspended status"""
+        logger.info("Processing suspended query for %s ...", suspended)
+        return cls.query.filter(cls.suspended == suspended).all()

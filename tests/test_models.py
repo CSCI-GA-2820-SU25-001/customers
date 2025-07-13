@@ -378,3 +378,50 @@ class TestModelQueries(TestCase):
         """It should return None when phone number not found"""
         found = Customer.find_by_phone_number("999-999-9999")
         self.assertIsNone(found)
+
+    def test_find_by_suspended_true(self):
+        """It should Find Customers that are suspended"""
+        customers = CustomerFactory.create_batch(5)
+        # Make some customers suspended
+        customers[0].suspended = True
+        customers[2].suspended = True
+        for customer in customers:
+            customer.create()
+        found = Customer.find_by_suspended(True)
+        self.assertEqual(len(found), 2)
+        for customer in found:
+            self.assertTrue(customer.suspended)
+
+    def test_find_by_suspended_false(self):
+        """It should Find Customers that are not suspended"""
+        customers = CustomerFactory.create_batch(5)
+        # Make some customers suspended, leave others active
+        customers[1].suspended = True
+        customers[3].suspended = True
+        for customer in customers:
+            customer.create()
+
+        found = Customer.find_by_suspended(False)
+        self.assertEqual(len(found), 3)
+        for customer in found:
+            self.assertFalse(customer.suspended)
+
+    def test_find_by_suspended_all_active(self):
+        """It should return all customers when all are active"""
+        customers = CustomerFactory.create_batch(3)
+        # All customers active by default
+        for customer in customers:
+            customer.create()
+
+        found = Customer.find_by_suspended(False)
+        self.assertEqual(len(found), 3)
+
+    def test_find_by_suspended_none_suspended(self):
+        """It should return empty list when no customers are suspended"""
+        customers = CustomerFactory.create_batch(3)
+        # All customers active by default
+        for customer in customers:
+            customer.create()
+
+        found = Customer.find_by_suspended(True)
+        self.assertEqual(len(found), 0)

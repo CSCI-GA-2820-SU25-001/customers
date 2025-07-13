@@ -97,14 +97,14 @@ class TestCustomerService(TestCase):
 
         self.assertIn("version", data)
         self.assertIn("paths", data)
-
-        # Added in add-route-route issue: check that all key endpoints exist
         self.assertIn("create", data["paths"])
         self.assertIn("list_all", data["paths"])
         self.assertIn("read_one", data["paths"])
         self.assertIn("update", data["paths"])
         self.assertIn("delete", data["paths"])
         self.assertIn("find_by_email", data["paths"])
+        self.assertIn("suspend", data["paths"])
+        self.assertIn("activate", data["paths"])
 
     def test_health(self):
         """It should be healthy"""
@@ -333,6 +333,68 @@ class TestCustomerService(TestCase):
         self.assertEqual(data[0]["last_name"], test_customer.last_name)
         self.assertEqual(data[0]["email"], test_customer.email)
         self.assertEqual(data[0]["phone_number"], test_customer.phone_number)
+
+    def test_query_by_suspended_true(self):
+        """It should Query Customers that are suspended"""
+        customers = self._create_customers(3)
+        response = self.client.put(f"{BASE_URL}/{customers[0].id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(BASE_URL, query_string="suspended=true")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertTrue(data[0]["suspended"])
+        self.assertEqual(data[0]["id"], customers[0].id)
+
+    def test_query_by_suspended_false(self):
+        """It should Query Customers that are not suspended"""
+        customers = self._create_customers(3)
+        response = self.client.put(f"{BASE_URL}/{customers[1].id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get(BASE_URL, query_string="suspended=false")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 2)
+        for customer in data:
+            self.assertFalse(customer["suspended"])
+
+    def test_query_by_suspended_with_other_parameters(self):
+        """It should Query Customers by suspended status combined with other filters"""
+        customers = self._create_customers(3)
+        test_customer = customers[0]
+
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        query_string = f"first_name={quote_plus(test_customer.first_name)}&suspended=true"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["first_name"], test_customer.first_name)
+        self.assertTrue(data[0]["suspended"])
+
+    def test_query_suspended_boolean_variations(self):
+        """It should handle various boolean representations for suspended parameter"""
+        customers = self._create_customers(2)
+        response = self.client.put(f"{BASE_URL}/{customers[0].id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        for true_value in ['true', 'True', '1']:
+            response = self.client.get(BASE_URL, query_string=f"suspended={true_value}")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.get_json()
+            self.assertEqual(len(data), 1)
+            self.assertTrue(data[0]["suspended"])
+
+        for false_value in ['false', 'False', '0']:
+            response = self.client.get(BASE_URL, query_string=f"suspended={false_value}")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            data = response.get_json()
+            self.assertEqual(len(data), 1)
+            self.assertFalse(data[0]["suspended"])
 
     # ----------------------------------------------------------
     # TEST SUSPEND CUSTOMER
@@ -644,3 +706,56 @@ class TestCustomerService(TestCase):
         data = response.get_json()
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]["last_name"], test_name)
+
+    def test_query_by_suspended_no_matches(self):
+        """It should return empty list when no customers match suspended status"""
+        # Create customers (all active by default)
+        self._create_customers(3)
+
+        # Query for suspended customers (should be none)
+        response = self.client.get(BASE_URL, query_string="suspended=true")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_suspended_with_nonmatching_other_params(self):
+        """It should return empty when suspended status matches but other params don't"""
+        customers = self._create_customers(2)
+        # Suspend one customer
+        response = self.client.put(f"{BASE_URL}/{customers[0].id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Query for suspended=true but with wrong first name
+        fake_name = CustomerFactory().first_name + "_FAKE"
+        query_string = f"suspended=true&first_name={quote_plus(fake_name)}"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_suspended_all_parameters_combined(self):
+        """It should Query by suspended status with all other parameters"""
+        customers = self._create_customers(2)
+        test_customer = customers[0]
+
+        # Suspend the customer
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Query with ALL parameters including suspended
+        query_string = (
+            f"first_name={quote_plus(test_customer.first_name)}&"
+            f"last_name={quote_plus(test_customer.last_name)}&"
+            f"email={quote_plus(test_customer.email)}&"
+            f"phone_number={quote_plus(test_customer.phone_number)}&"
+            f"suspended=true"
+        )
+        response = self.client.get(BASE_URL, query_string=query_string)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["first_name"], test_customer.first_name)
+        self.assertEqual(data[0]["last_name"], test_customer.last_name)
+        self.assertEqual(data[0]["email"], test_customer.email)
+        self.assertEqual(data[0]["phone_number"], test_customer.phone_number)
+        self.assertTrue(data[0]["suspended"])

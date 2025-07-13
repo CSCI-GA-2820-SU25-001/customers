@@ -54,6 +54,8 @@ def index():
                 "update": url_for("update_customers", customer_id=1, _external=True),
                 "delete": url_for("delete_customers", customer_id=1, _external=True),
                 "find_by_email": url_for("list_customers", _external=True),
+                "suspend": url_for("suspend_customer", customer_id=1, _external=True),
+                "activate": url_for("activate_customer", customer_id=1, _external=True),
             },
         ),
         status.HTTP_200_OK,
@@ -180,6 +182,7 @@ def list_customers():
     first_name = request.args.get("first_name")
     last_name = request.args.get("last_name")
     phone_number = request.args.get("phone_number")
+    suspended = request.args.get("suspended")  # ADD THIS LINE
 
     # Start with base query
     query = Customer.query
@@ -200,6 +203,12 @@ def list_customers():
     if phone_number:
         app.logger.info("Find by phone_number: %s", phone_number)
         query = query.filter(Customer.phone_number == phone_number)
+
+    if suspended is not None:
+        # Convert string to boolean (handles 'true', 'false', '1', '0', etc.)
+        suspended_bool = suspended.lower() in ('true', '1', 'yes')
+        app.logger.info("Find by suspended: %s", suspended_bool)
+        query = query.filter(Customer.suspended == suspended_bool)
 
     # Execute the query to get filtered results
     customers = query.all()
