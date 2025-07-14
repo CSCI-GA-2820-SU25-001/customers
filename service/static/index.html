@@ -109,7 +109,7 @@ function createCustomer(e) {
         body: JSON.stringify(data)
     })
     .then(res => res.json().then(d => ({status: res.status, data: d})))
-    .then result => {
+    .then(function(result) {
         if (result.status === 201) {
             showAlert('Customer created successfully!');
             fetchCustomers();
