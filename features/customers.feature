@@ -1,11 +1,15 @@
+Feature: Customer Management UI
+    As a Business Owner
+    I need a RESTful customer service
+    So that I can keep track of my customers
 
-Background:
+  Background:
     Given the following customers
-        | First Name       | Last Name  | Email                | Phone Numer          | Address   
-        | First            | Last       | test@email.com       | 123-456-7890         | 1234 testStreet testCity, testState 10009
-        | First1           | Last1      | test1@email.com      | 123-456-7891         | 1235 testStreet testCity, testState 10009
-        | First2           | Last2      | test2@email.com      | 123-456-7892         | 1236 testStreet testCity, testState 10009
-        | First3           | Last3      | test3@email.com      | 123-456-7893         | 1237 testStreet testCity, testState 10009
+      | First Name | Last Name | Email           | Phone Number   | Address                                   |
+      | First      | Last      | test@email.com  | 123-456-7890   | 1234 testStreet testCity, testState 10009 |
+      | First1     | Last1     | test1@email.com | 123-456-7891   | 1235 testStreet testCity, testState 10009 |
+      | First2     | Last2     | test2@email.com | 123-456-7892   | 1236 testStreet testCity, testState 10009 |
+      | First3     | Last3     | test3@email.com | 123-456-7893   | 1237 testStreet testCity, testState 10009 |
 
 
 Scenario: The server is running
@@ -27,3 +31,22 @@ Scenario: Delete a Customer
     When I visit the "Home Page"
     And I press the "Delete" button
     Then I should see the message "Customer deleted."
+
+Scenario: Read a Customer by ID
+    When I visit the "Home Page"
+    And I set the "First Name" to "First"
+    And I press the "Search" button
+    Then I should see the message "Customer found."
+    When I copy the "Id" field
+    And I press the "Clear" button
+    Then the "Id" field should be empty
+    And the "First Name" field should be empty
+    And the "Last Name" field should be empty
+    When I paste the "Id" field
+    And I press the "Retrieve" button
+    Then I should see the message "Customer found."
+    And I should see "First" in the "First Name" field
+    And I should see "Last" in the "Last Name" field
+    And I should see "test@email.com" in the "Email Address" field
+    And I should see "123-456-7890" in the "Phone Number" field
+    And I should see "1234 testStreet testCity, testState 10009" in the "Address" field

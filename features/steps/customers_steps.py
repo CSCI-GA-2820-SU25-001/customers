@@ -34,9 +34,9 @@ HTTP_204_NO_CONTENT = 204
 WAIT_TIMEOUT = 60
 
 
-@given('the following customer')
+@given("the following customers")
 def step_impl(context):
-    """ Delete all customers and load new ones """
+    """Delete all customers and load new ones"""
 
     # Get a list all of the customers
     rest_endpoint = f"{context.base_url}/customers"
@@ -44,17 +44,19 @@ def step_impl(context):
     expect(context.resp.status_code).equal_to(HTTP_200_OK)
     # and delete them one by one
     for customer in context.resp.json():
-        context.resp = requests.delete(f"{rest_endpoint}/{customer['id']}", timeout=WAIT_TIMEOUT)
+        context.resp = requests.delete(
+            f"{rest_endpoint}/{customer['id']}", timeout=WAIT_TIMEOUT
+        )
         expect(context.resp.status_code).equal_to(HTTP_204_NO_CONTENT)
 
     # load the database with new customer
     for row in context.table:
         payload = {
-            "first_name": row['First Name'],
-            "last_name": row['Last Name'],
-            "email": row['Email'],
-            "phone_number": row.get('Phone Number', ''),
-            "address": row.get('Address', '')
+            "first_name": row["First Name"],
+            "last_name": row["Last Name"],
+            "email": row["Email"],
+            "phone_number": row.get("Phone Number", ""),
+            "address": row.get("Address", ""),
         }
         context.resp = requests.post(rest_endpoint, json=payload, timeout=WAIT_TIMEOUT)
         expect(context.resp.status_code).equal_to(HTTP_201_CREATED)
