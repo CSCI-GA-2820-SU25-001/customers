@@ -1,292 +1,459 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Customer Admin UI</title>
+<html>
+  <head>
+    <title>Customer Administration</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body { padding: 2rem; }
-        .container { max-width: 800px; }
-        .mt-2 { margin-top: 2rem; }
-    </style>
-</head>
-<body>
-<div class="container">
-    <h1>Customer Administration</h1>
-    <form id="create-form" class="mb-4">
-        <h4>Create Customer</h4>
-        <div class="row g-2">
-            <div class="col-md-6">
-                <input type="text" class="form-control" id="customer_first_name" name="first_name" placeholder="First Name" required>
-            </div>
-            <div class="col-md-6">
-                <input type="text" class="form-control" id="customer_last_name" name="last_name" placeholder="Last Name" required>
-            </div>
-        </div>
-        <div class="row g-2 mt-2">
-            <div class="col-md-6">
-                <input type="email" class="form-control" id="customer_email" name="email" placeholder="Email" required>
-            </div>
-            <div class="col-md-6">
-                <input type="text" class="form-control" id="customer_phone_number" name="phone_number" placeholder="Phone Number">
-            </div>
-        </div>
-        <div class="row g-2 mt-2">
-            <div class="col-12">
-                <input type="text" class="form-control" id="customer_address" name="address" placeholder="Address">
-            </div>
-        </div>
-        <button type="submit" class="btn btn-primary mt-2" id="create-btn">Create</button>
-    </form>
-    <div id="alert" class="alert d-none"></div>
-    <form id="search-form" class="mb-4">
-        <h4>Search Customers</h4>
-        <div class="row g-2">
-            <div class="col-md-2">
-                <input type="text" class="form-control" id="search_first_name" name="search_first_name" placeholder="First Name">
-            </div>
-            <div class="col-md-2">
-                <input type="text" class="form-control" id="search_last_name" name="search_last_name" placeholder="Last Name">
-            </div>
-            <div class="col-md-2">
-                <input type="number" class="form-control" id="search_id" name="search_id" placeholder="ID">
-            </div>
-            <div class="col-md-3">
-                <input type="email" class="form-control" id="search_email" name="search_email" placeholder="Email">
-            </div>
-            <div class="col-md-2">
-                <input type="text" class="form-control" id="search_phone" name="search_phone" placeholder="Phone">
-            </div>
-            <div class="col-md-1">
-                <select class="form-select" id="search_suspended" name="search_suspended">
-                    <option value="">Suspended?</option>
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                </select>
-            </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-md-8">
-                <small class="text-muted" id="search-instructions">
-                    You can search by <b>First Name</b>, <b>Last Name</b>, <b>ID</b>, <b>Email</b>, <b>Phone</b>, or <b>Suspended</b> status.<br>
-                    Enter one or more fields. Leave all blank and click <b>Refresh</b> to view all customers.
-                </small>
-            </div>
-            <div class="col-md-4 text-end">
-                <button type="submit" class="btn btn-secondary" id="search-btn">Search</button>
-                <button type="button" class="btn btn-outline-primary ms-2" id="refresh-btn">Refresh</button>
-            </div>
-        </div>
-    </form>
-    <h4>Customer List</h4>
-    <table class="table table-bordered" id="customer-table">
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Address</th>
-            <th>Suspended</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-<script>
-const API_URL = '/customers';
-
-function showAlert(message, type='success') {
-    const alert = document.getElementById('alert');
-    alert.className = `alert alert-${type}`;
-    alert.textContent = message;
-    alert.classList.remove('d-none');
-    setTimeout(() => alert.classList.add('d-none'), 3000);
-}
-
-function fetchCustomers() {
-    fetch(API_URL)
-        .then(res => res.json())
-        .then(data => {
-            const tbody = document.querySelector('#customer-table tbody');
-            tbody.innerHTML = '';
-            data.forEach(c => {
-                tbody.innerHTML += `
-                <tr>
-                    <td>${c.id}</td>
-                    <td>${c.first_name}</td>
-                    <td>${c.last_name}</td>
-                    <td>${c.email}</td>
-                    <td>${c.phone_number || ''}</td>
-                    <td>${c.address || ''}</td>
-                    <td>${c.suspended ? 'Yes' : 'No'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="suspendCustomer(${c.id})">Suspend</button>
-                        <button class="btn btn-sm btn-success" onclick="activateCustomer(${c.id})">Activate</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">Delete</button>
-                    </td>
-                </tr>`;
-            });
-        });
-}
-
-function createCustomer(e) {
-    e.preventDefault();
-    const form = e.target;
-    const data = {
-        first_name: form.first_name.value,
-        last_name: form.last_name.value,
-        email: form.email.value,
-        phone_number: form.phone_number.value,
-        address: form.address.value
-    };
-    fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(res => res.json().then(d => ({status: res.status, data: d})))
-    .then(function(result) {
-        if (result.status === 201) {
-            showAlert('Customer created successfully!');
-            fetchCustomers();
-            form.reset();
-        } else {
-            showAlert(result.data.error || 'Error creating customer', 'danger');
+        .container { max-width: 1200px; }
+        .form-group { margin-bottom: 1rem; }
+        .well { 
+            background-color: #f5f5f5; 
+            border: 1px solid #e3e3e3; 
+            border-radius: 4px; 
+            padding: 19px; 
+            margin-bottom: 20px; 
         }
+        .control-label { 
+            text-align: right; 
+            padding-top: 7px; 
+            margin-bottom: 0; 
+            font-weight: bold; 
+        }
+        .col-sm-offset-2 { margin-left: 16.66666667%; }
+        .page-header { 
+            padding-bottom: 9px; 
+            margin: 20px 0 30px; 
+            border-bottom: 1px solid #eee; 
+        }
+        #flash_message { 
+            min-height: 20px; 
+            font-weight: bold; 
+        }
+        .table-responsive { margin-bottom: 20px; }
+        .search-section { 
+            background-color: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 5px; 
+            margin: 20px 0; 
+        }
+        .customer-actions { margin-top: 20px; }
+        .action-buttons .btn { margin-right: 5px; margin-bottom: 5px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-header">
+          <h1>Customer Administration</h1>
+      </div>
+
+      <!-- Flash Message -->
+      <div class="table-responsive">
+        <table class="table">
+          <tr><td><strong>Status:</strong></td><td><span id="flash_message"></span></td></tr>
+        </table>
+      </div>
+
+      <!-- MAIN CUSTOMER FORM -->
+      <div class="col-md-12" id="form_data">
+        <h3>Create, Retrieve, Update, and Delete a Customer:</h3>
+        <div class="well">
+          <div class="form-horizontal">
+            <!-- CUSTOMER ID ROW -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="customer_id">Customer ID:</label>
+              <div class="col-sm-6">
+                <input type="text" class="form-control" id="customer_id" placeholder="Enter ID of Customer">
+              </div>
+              <div class="col-sm-4 action-buttons">
+                <button type="button" class="btn btn-primary" id="retrieve-btn">Retrieve</button>
+                <button type="button" class="btn btn-danger" id="delete-btn">Delete</button>
+              </div>
+            </div>
+          </div> <!-- form horizontal -->
+
+          <div class="form-horizontal">
+            <!-- FIRST NAME -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="customer_first_name">First Name:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="customer_first_name" placeholder="Enter first name for Customer">
+              </div>
+            </div>
+
+            <!-- LAST NAME -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="customer_last_name">Last Name:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="customer_last_name" placeholder="Enter last name for Customer">
+              </div>
+            </div>
+
+            <!-- EMAIL ADDRESS -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="customer_email_address">Email Address:</label>
+              <div class="col-sm-10">
+                <input type="email" class="form-control" id="customer_email_address" placeholder="Enter email address for Customer">
+              </div>
+            </div>
+
+            <!-- PHONE NUMBER -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="customer_phone_number">Phone Number:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="customer_phone_number" placeholder="Enter phone number for Customer">
+              </div>
+            </div>
+
+            <!-- ADDRESS -->
+            <div class="form-group">
+              <label class="control-label col-sm-2" for="customer_address">Address:</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control" id="customer_address" placeholder="Enter address for Customer">
+              </div>
+            </div>
+
+            <!-- MAIN ACTION BUTTONS -->
+            <div class="form-group">
+              <div class="col-sm-offset-2 col-sm-10 action-buttons">
+                <button type="button" class="btn btn-primary" id="search-btn">Search</button>
+                <button type="button" class="btn btn-secondary" id="clear-btn">Clear</button>
+                <button type="button" class="btn btn-success" id="create-btn">Create</button>
+                <button type="button" class="btn btn-warning" id="update-btn">Update</button>
+              </div>
+            </div>
+          </div> <!-- form horizontal -->
+        </div> <!-- end well -->
+      </div> <!-- end Main Form -->
+
+      <!-- ADVANCED SEARCH SECTION -->
+      <div class="search-section">
+        <h4>Advanced Search</h4>
+        <p class="text-muted">Search by multiple criteria. Leave fields blank to search all customers.</p>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="search_first_name" class="form-label">First Name:</label>
+            <input type="text" class="form-control" id="search_first_name" placeholder="First Name">
+          </div>
+          <div class="col-md-3">
+            <label for="search_last_name" class="form-label">Last Name:</label>
+            <input type="text" class="form-control" id="search_last_name" placeholder="Last Name">
+          </div>
+          <div class="col-md-3">
+            <label for="search_email" class="form-label">Email:</label>
+            <input type="email" class="form-control" id="search_email" placeholder="Email">
+          </div>
+          <div class="col-md-3">
+            <label for="search_phone" class="form-label">Phone:</label>
+            <input type="text" class="form-control" id="search_phone" placeholder="Phone">
+          </div>
+        </div>
+        <div class="row g-3 mt-2">
+          <div class="col-md-3">
+            <label for="search_id" class="form-label">Customer ID:</label>
+            <input type="number" class="form-control" id="search_id" placeholder="ID">
+          </div>
+          <div class="col-md-3">
+            <label for="search_suspended" class="form-label">Suspended Status:</label>
+            <select class="form-control" id="search_suspended">
+              <option value="">All Customers</option>
+              <option value="true">Suspended Only</option>
+              <option value="false">Active Only</option>
+            </select>
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <button type="button" class="btn btn-info me-2" id="advanced-search-btn">Advanced Search</button>
+            <button type="button" class="btn btn-outline-secondary" id="refresh-btn">Refresh All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUSTOMER MANAGEMENT ACTIONS -->
+      <div class="customer-actions">
+        <h4>Customer Management Actions</h4>
+        <div class="row">
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title">Suspend Customer</h6>
+                <p class="card-text text-muted">Enter Customer ID to suspend account</p>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="suspend_customer_id" placeholder="Customer ID">
+                  <button class="btn btn-warning" id="suspend-customer-btn">Suspend</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title">Activate Customer</h6>
+                <p class="card-text text-muted">Enter Customer ID to activate account</p>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="activate_customer_id" placeholder="Customer ID">
+                  <button class="btn btn-success" id="activate-customer-btn">Activate</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-body">
+                <h6 class="card-title">Bulk Operations</h6>
+                <p class="card-text text-muted">Manage multiple customers</p>
+                <button class="btn btn-info btn-sm" id="export-customers-btn">Export All</button>
+                <button class="btn btn-secondary btn-sm" id="count-customers-btn">Count Customers</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEARCH RESULTS (jQuery table from rest_api.js) -->
+      <div class="table-responsive col-md-12" id="search_results">
+        <h4>Search Results</h4>
+        <table class="table table-striped table-bordered">
+          <thead class="table-dark">
+          <tr>
+            <th class="col-md-1">ID</th>
+            <th class="col-md-2">First Name</th>
+            <th class="col-md-2">Last Name</th>
+            <th class="col-md-3">Email</th>
+            <th class="col-md-2">Phone</th>
+            <th class="col-md-2">Address</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- LIVE CUSTOMER TABLE (Your original functionality) -->
+      <div class="mt-4">
+        <h4>All Customers 
+          <button class="btn btn-sm btn-outline-primary" id="reload-table-btn">Reload</button>
+        </h4>
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover" id="customer-table">
+            <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Address</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <footer>
+        <br><br>
+        <div class="text-center text-muted">
+          <p>&copy; 2025 NYU DevOps Customer Management System | Version 2.0</p>
+          <p><small>Built with Flask, Bootstrap 5, and jQuery</small></p>
+        </div>
+      </footer>
+
+    </div> <!-- container -->
+
+  <!-- Include jQuery and Bootstrap -->
+  <script type="text/javascript" src="static/js/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="static/js/bootstrap.min.js"></script>
+
+  <!-- YOUR CUSTOMER REST API -->
+  <script type="text/javascript" src="static/js/rest_api.js"></script>
+
+  <!-- Additional jQuery for your existing functionality -->
+  <script type="text/javascript">
+  $(function() {
+    // Advanced search functionality
+    $("#advanced-search-btn").click(function() {
+      let queryParams = [];
+      
+      const searchFields = {
+        'search_first_name': 'first_name',
+        'search_last_name': 'last_name', 
+        'search_email': 'email',
+        'search_phone': 'phone_number',
+        'search_id': 'id',
+        'search_suspended': 'suspended'
+      };
+      
+      for (let fieldId in searchFields) {
+        const value = $("#" + fieldId).val().trim();
+        if (value) {
+          queryParams.push(searchFields[fieldId] + '=' + encodeURIComponent(value));
+        }
+      }
+      
+      const url = queryParams.length > 0 ? '/customers?' + queryParams.join('&') : '/customers';
+      
+      $.ajax({
+        type: "GET",
+        url: url,
+        contentType: "application/json"
+      }).done(function(res) {
+        $("#search_results").show();
+        updateSearchResults(res);
+        $("#flash_message").text("Found " + res.length + " customer(s)");
+      }).fail(function() {
+        $("#flash_message").text("Search failed");
+      });
     });
-}
 
-function suspendCustomer(id) {
-    fetch(`${API_URL}/${id}/suspend`, { method: 'PUT' })
-        .then(res => res.json().then(d => ({status: res.status, data: d})))
-        .then(result => {
-            if (result.status === 200) {
-                showAlert('Customer suspended.');
-                fetchCustomers();
-            } else {
-                showAlert(result.data.message || 'Error suspending customer', 'danger');
-            }
-        });
-}
-
-function activateCustomer(id) {
-    fetch(`${API_URL}/${id}/activate`, { method: 'PUT' })
-        .then(res => res.json().then(d => ({status: res.status, data: d})))
-        .then(result => {
-            if (result.status === 200) {
-                showAlert('Customer activated.');
-                fetchCustomers();
-            } else {
-                showAlert(result.data.message || 'Error activating customer', 'danger');
-            }
-        });
-}
-
-function deleteCustomer(id) {
-    fetch(`${API_URL}/${id}`, { method: 'DELETE' })
-        .then(res => {
-            if (res.status === 204) {
-                showAlert('Customer deleted.');
-                fetchCustomers();
-            } else {
-                res.json().then(d => showAlert(d.message || 'Error deleting customer', 'danger'));
-            }
-        });
-}
-
-function searchCustomers(e) {
-    e.preventDefault();
-    const first_name = document.getElementById('search_first_name').value.trim();
-    const last_name = document.getElementById('search_last_name').value.trim();
-    const id = document.getElementById('search_id').value.trim();
-    const email = document.getElementById('search_email').value.trim();
-    const phone = document.getElementById('search_phone').value.trim();
-    const suspended = document.getElementById('search_suspended').value;
-    const tbody = document.querySelector('#customer-table tbody');
-    tbody.innerHTML = '';
-    let found = false;
-    if (id) {
-        fetch(`${API_URL}/${id}`)
-            .then(res => {
-                if (res.status === 404) {
-                    showAlert('No users found', 'danger');
-                    return [];
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (!data || (Array.isArray(data) && data.length === 0)) {
-                    showAlert('No users found', 'danger');
-                    return;
-                }
-                if (!Array.isArray(data)) data = [data];
-                found = true;
-                renderCustomers(data);
-            });
+    // Suspend customer functionality
+    $("#suspend-customer-btn").click(function() {
+      const id = $("#suspend_customer_id").val();
+      if (!id) {
+        $("#flash_message").text("Please enter Customer ID to suspend");
         return;
-    }
-    let url = API_URL + '?';
-    let params = [];
-    if (first_name && last_name) {
-        // Both filled: require both to match
-        params.push(`first_name=${encodeURIComponent(first_name)}`);
-        params.push(`last_name=${encodeURIComponent(last_name)}`);
-    } else {
-        if (first_name) params.push(`first_name=${encodeURIComponent(first_name)}`);
-        if (last_name) params.push(`last_name=${encodeURIComponent(last_name)}`);
-    }
-    if (email) params.push(`email=${encodeURIComponent(email)}`);
-    if (phone) params.push(`phone_number=${encodeURIComponent(phone)}`);
-    if (suspended !== '') params.push(`suspended=${suspended}`);
-    if (params.length === 0) {
-        fetchCustomers();
-        return;
-    }
-    url += params.join('&');
-    fetch(url)
-        .then(res => res.json())
-        .then(data => {
-            if (!data || data.length === 0) {
-                showAlert('No users found', 'danger');
-                return;
-            }
-            renderCustomers(data);
-        });
-}
+      }
+      
+      $.ajax({
+        type: "PUT",
+        url: `/customers/${id}/suspend`,
+        contentType: "application/json"
+      }).done(function() {
+        $("#flash_message").text("Customer suspended successfully");
+        $("#suspend_customer_id").val("");
+        loadAllCustomers();
+      }).fail(function() {
+        $("#flash_message").text("Failed to suspend customer");
+      });
+    });
 
-function renderCustomers(data) {
-    const tbody = document.querySelector('#customer-table tbody');
-    tbody.innerHTML = '';
-    data.forEach(c => {
-        tbody.innerHTML += `
-        <tr>
+    // Activate customer functionality  
+    $("#activate-customer-btn").click(function() {
+      const id = $("#activate_customer_id").val();
+      if (!id) {
+        $("#flash_message").text("Please enter Customer ID to activate");
+        return;
+      }
+      
+      $.ajax({
+        type: "PUT", 
+        url: `/customers/${id}/activate`,
+        contentType: "application/json"
+      }).done(function() {
+        $("#flash_message").text("Customer activated successfully");
+        $("#activate_customer_id").val("");
+        loadAllCustomers();
+      }).fail(function() {
+        $("#flash_message").text("Failed to activate customer");
+      });
+    });
+
+    // Refresh functionality
+    $("#refresh-btn, #reload-table-btn").click(function() {
+      loadAllCustomers();
+      $("#flash_message").text("Customer list refreshed");
+    });
+
+    // Count customers
+    $("#count-customers-btn").click(function() {
+      $.ajax({
+        type: "GET",
+        url: "/customers",
+        contentType: "application/json"
+      }).done(function(res) {
+        $("#flash_message").text("Total customers: " + res.length);
+      });
+    });
+
+    // Export customers (simple version)
+    $("#export-customers-btn").click(function() {
+      $("#flash_message").text("Export functionality would be implemented here");
+    });
+
+    // Helper function to update search results
+    function updateSearchResults(customers) {
+      const tbody = $("#search_results tbody");
+      tbody.empty();
+      
+      customers.forEach(function(customer) {
+        const row = `<tr>
+          <td>${customer.id}</td>
+          <td>${customer.first_name}</td>
+          <td>${customer.last_name}</td>
+          <td>${customer.email}</td>
+          <td>${customer.phone_number || ''}</td>
+          <td>${customer.address || ''}</td>
+        </tr>`;
+        tbody.append(row);
+      });
+    }
+
+    // Helper function to load all customers into the live table
+    function loadAllCustomers() {
+      $.ajax({
+        type: "GET",
+        url: "/customers",
+        contentType: "application/json"
+      }).done(function(customers) {
+        const tbody = $("#customer-table tbody");
+        tbody.empty();
+        
+        customers.forEach(function(c) {
+          const row = `<tr>
             <td>${c.id}</td>
             <td>${c.first_name}</td>
             <td>${c.last_name}</td>
             <td>${c.email}</td>
             <td>${c.phone_number || ''}</td>
             <td>${c.address || ''}</td>
-            <td>${c.suspended ? 'Yes' : 'No'}</td>
+            <td><span class="badge ${c.suspended ? 'bg-warning' : 'bg-success'}">${c.suspended ? 'Suspended' : 'Active'}</span></td>
             <td>
-                <button class="btn btn-sm btn-warning" onclick="suspendCustomer(${c.id})">Suspend</button>
-                <button class="btn btn-sm btn-success" onclick="activateCustomer(${c.id})">Activate</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${c.id})">Delete</button>
+              <button class="btn btn-sm btn-warning suspend-btn" data-id="${c.id}">Suspend</button>
+              <button class="btn btn-sm btn-success activate-btn" data-id="${c.id}">Activate</button>
+              <button class="btn btn-sm btn-danger delete-btn" data-id="${c.id}">Delete</button>
             </td>
-        </tr>`;
-    });
-}
+          </tr>`;
+          tbody.append(row);
+        });
+      });
+    }
 
-document.getElementById('create-form').addEventListener('submit', createCustomer);
-document.getElementById('search-form').addEventListener('submit', searchCustomers);
-document.getElementById('refresh-btn').addEventListener('click', function() {
-    document.getElementById('search-form').reset();
-    fetchCustomers();
-    showAlert('Showing all customers.', 'info');
-});
-window.onload = fetchCustomers;
-</script>
-</body>
+    // Event delegation for dynamic buttons
+    $(document).on('click', '.suspend-btn', function() {
+      const id = $(this).data('id');
+      $("#suspend_customer_id").val(id);
+      $("#suspend-customer-btn").click();
+    });
+
+    $(document).on('click', '.activate-btn', function() {
+      const id = $(this).data('id'); 
+      $("#activate_customer_id").val(id);
+      $("#activate-customer-btn").click();
+    });
+
+    $(document).on('click', '.delete-btn', function() {
+      const id = $(this).data('id');
+      if (confirm('Are you sure you want to delete this customer?')) {
+        $.ajax({
+          type: "DELETE",
+          url: `/customers/${id}`,
+          contentType: "application/json"
+        }).done(function() {
+          $("#flash_message").text("Customer deleted successfully");
+          loadAllCustomers();
+        }).fail(function() {
+          $("#flash_message").text("Failed to delete customer");
+        });
+      }
+    });
+
+    // Load customers on page load
+    loadAllCustomers();
+  });
+  </script>
+
+  </body>
 </html>
