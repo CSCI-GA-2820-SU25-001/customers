@@ -44,6 +44,7 @@ def index():
     """Base URL for our service"""
     return app.send_static_file("index.html")
 
+
 ######################################################################
 # CREATE A NEW CUSTOMER
 ######################################################################
