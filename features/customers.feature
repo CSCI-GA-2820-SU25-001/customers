@@ -29,6 +29,12 @@ Scenario: Create a Customer
 
 Scenario: Delete a Customer
     When I visit the "Home Page"
+    And I set the "First Name" to "First"
+    And I press the "Search" button
+    Then I should see the message "Customer found."
+    When I copy the "Id" field
+    And I press the "Clear" button
+    And I paste the "Id" field
     And I press the "Delete" button
     Then I should see the message "Customer deleted."
 
@@ -50,3 +56,21 @@ Scenario: Read a Customer by ID
     And I should see "test@email.com" in the "Email Address" field
     And I should see "123-456-7890" in the "Phone Number" field
     And I should see "1234 testStreet testCity, testState 10009" in the "Address" field
+
+Scenario: Update a Customer
+    When I visit the "Home Page"
+    And I set the "First Name" to "First"
+    And I press the "Search" button
+    Then I should see the message "Customer found."
+    And I should see "First" in the "First Name" field
+    And I should see "Last" in the "Last Name" field
+    And I should see "test@email.com" in the "Email Address" field
+    When I change "Email Address" to "updated@email.com"
+    And I press the "Update" button
+    Then I should see the message "Customer updated successfully!"
+    When I copy the "Id" field
+    And I press the "Clear" button
+    And I paste the "Id" field
+    And I press the "Retrieve" button
+    Then I should see the message "Customer found."
+    And I should see "updated@email.com" in the "Email Address" field
