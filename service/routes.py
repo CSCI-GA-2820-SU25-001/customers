@@ -50,17 +50,16 @@ def index():
             paths={
                 "create": url_for("create_customers", _external=True),
                 "list_all": url_for("list_customers", _external=True),
-                "read_one": url_for("get_customers", customer_id=0, _external=True), # customer_id=0 is a placeholder
-                "update": url_for("update_customers", customer_id=0, _external=True), # customer_id=0 is a placeholder
-                "delete": url_for("delete_customers", customer_id=0, _external=True), # customer_id=0 is a placeholder
-                "suspend": url_for("suspend_customer", customer_id=0, _external=True), # customer_id=0 is a placeholder
-                "activate": url_for("activate_customer", customer_id=0, _external=True), # customer_id=0 is a placeholder
-                "find_by_email": url_for("list_customers", email="test@example.com", _external=True), # Added for test_index
+                "read_one": url_for("get_customers", customer_id=0, _external=True),
+                "update": url_for("update_customers", customer_id=0, _external=True),
+                "delete": url_for("delete_customers", customer_id=0, _external=True),
+                "suspend": url_for("suspend_customer", customer_id=0, _external=True),
+                "activate": url_for("activate_customer", customer_id=0, _external=True),
+                "find_by_email": url_for("list_customers", email="test@example.com", _external=True),
             },
         ),
         status.HTTP_200_OK,
     )
-
 
 
 ######################################################################
