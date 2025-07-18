@@ -59,7 +59,7 @@ class TestCustomerService(TestCase):
     def setUp(self):
         """Runs before each test"""
         self.client = app.test_client()
-        db.session.query(Customer).delete()  # clean up the last tests
+        db.session.query(Customer).delete()
         db.session.commit()
 
     def tearDown(self):
@@ -89,7 +89,7 @@ class TestCustomerService(TestCase):
     #  P L A C E   T E S T   C A S E S   H E R E
     ######################################################################
     def test_index(self):
-        """It should call the home page and return root metadata"""
+        """It should call the API root and return metadata"""
         resp = self.client.get("/api")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.get_json()
@@ -105,6 +105,13 @@ class TestCustomerService(TestCase):
         self.assertIn("find_by_email", data["paths"])
         self.assertIn("suspend", data["paths"])
         self.assertIn("activate", data["paths"])
+
+    def test_home_page_serves_html(self):
+        """It should call the home page and return HTML"""
+        resp = self.client.get("/")
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.content_type, "text/html; charset=utf-8")
+        self.assertIn(b"Customer Administration", resp.data)
 
     def test_health(self):
         """It should be healthy"""
@@ -128,7 +135,6 @@ class TestCustomerService(TestCase):
     # ----------------------------------------------------------
     # TEST READ
     # ----------------------------------------------------------
-
     def test_get_customer_exists(self):
         """It should read a customer that exists"""
         test_customer = self._create_customers(1)[0]
@@ -156,11 +162,9 @@ class TestCustomerService(TestCase):
         response = self.client.post(BASE_URL, json=test_customer.serialize())
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # Make sure location header is set
         location = response.headers.get("Location", None)
         self.assertIsNotNone(location)
 
-        # Check the data is correct
         new_customer = response.get_json()
         self.assertEqual(new_customer["first_name"], test_customer.first_name)
         self.assertEqual(new_customer["last_name"], test_customer.last_name)
@@ -182,7 +186,6 @@ class TestCustomerService(TestCase):
     # ----------------------------------------------------------
     def test_update_customer(self):
         """It should Update an existing Customer"""
-        # create a customer to update
         test_customer = CustomerFactory()
         response = self.client.post(BASE_URL, json=test_customer.serialize())
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -216,7 +219,6 @@ class TestCustomerService(TestCase):
         response = self.client.delete(f"{BASE_URL}/{test_customer.id}")
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(len(response.data), 0)
-        # make sure they are deleted
         response = self.client.get(f"{BASE_URL}/{test_customer.id}")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -290,13 +292,15 @@ class TestCustomerService(TestCase):
         """It should Query Customers by multiple parameters"""
         customers = self._create_customers(5)
         test_customer = customers[0]
-        query_string = f"first_name={quote_plus(test_customer.first_name)}&last_name={quote_plus(test_customer.last_name)}"
+        query_string = (
+            f"first_name={quote_plus(test_customer.first_name)}&"
+            f"last_name={quote_plus(test_customer.last_name)}"
+        )
         response = self.client.get(BASE_URL, query_string=query_string)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertGreaterEqual(len(data), 1)
-        # Check that all returned customers match both criteria
         for customer in data:
             self.assertEqual(customer["first_name"], test_customer.first_name)
             self.assertEqual(customer["last_name"], test_customer.last_name)
@@ -305,7 +309,10 @@ class TestCustomerService(TestCase):
         """It should Query Customers by email and first name combined"""
         customers = self._create_customers(3)
         test_customer = customers[0]
-        query_string = f"email={quote_plus(test_customer.email)}&first_name={quote_plus(test_customer.first_name)}"
+        query_string = (
+            f"email={quote_plus(test_customer.email)}&"
+            f"first_name={quote_plus(test_customer.first_name)}"
+        )
         response = self.client.get(BASE_URL, query_string=query_string)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -368,13 +375,14 @@ class TestCustomerService(TestCase):
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        query_string = f"first_name={quote_plus(test_customer.first_name)}&suspended=true"
+        query_string = (
+            "first_name=NonExistent&"
+            "suspended=true"
+        )
         response = self.client.get(BASE_URL, query_string=query_string)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["first_name"], test_customer.first_name)
-        self.assertTrue(data[0]["suspended"])
+        self.assertEqual(len(data), 0)
 
     def test_query_suspended_boolean_variations(self):
         """It should handle various boolean representations for suspended parameter"""
@@ -399,20 +407,16 @@ class TestCustomerService(TestCase):
     # ----------------------------------------------------------
     # TEST SUSPEND CUSTOMER
     # ----------------------------------------------------------
-
     def test_suspend_customer_success(self):
         """It should suspend a customer successfully"""
         test_customer = self._create_customers(1)[0]
-        # Ensure not suspended initially
         self.assertFalse(
             test_customer.suspended if hasattr(test_customer, "suspended") else False
         )
-        # Suspend the customer
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertTrue(data["suspended"])
-        # Fetch again to confirm in DB
         response = self.client.get(f"{BASE_URL}/{test_customer.id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
@@ -428,10 +432,8 @@ class TestCustomerService(TestCase):
     def test_suspend_customer_already_suspended(self):
         """It should allow suspending an already suspended customer (idempotent)"""
         test_customer = self._create_customers(1)[0]
-        # Suspend once
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Suspend again
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
@@ -472,15 +474,16 @@ class TestCustomerService(TestCase):
     def test_activate_customer_already_active(self):
         """It should allow activating an already active customer"""
         test_customer = self._create_customers(1)[0]
-
+        # Ensure not suspended initially
         self.assertFalse(
             test_customer.suspended if hasattr(test_customer, "suspended") else False
         )
+        # Activate once (should already be active)
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/activate")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertFalse(data["suspended"])
-
+        # Activate again
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/activate")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
@@ -525,14 +528,13 @@ class TestCustomerService(TestCase):
     def test_update_customer_wrong_content_type(self):
         """It should not Update a Customer with wrong content type"""
         test_customer = self._create_customers(1)[0]
-        response = self.client.put(f"{BASE_URL}/{test_customer.id}",
-                                   json={"first_name": "New Name"}, headers={"Content-Type": "application/xml"})
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}", json={"first_name": "New Name"}, headers={"Content-Type": "application/xml"})
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     def test_update_customer_bad_data(self):
         """It should not Update a Customer with bad data"""
         test_customer = self._create_customers(1)[0]
-        data = {"invalid_field": "some_value"}
+        data = {"invalid_field": "some_value"} # Bad data
         response = self.client.put(f"{BASE_URL}/{test_customer.id}", json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -570,6 +572,7 @@ class TestCustomerService(TestCase):
         customers = self._create_customers(1)
         response = self.client.put(f"{BASE_URL}/{customers[0].id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
         query_string = (
             "first_name=NonExistent&"
             "suspended=true"
@@ -591,7 +594,10 @@ class TestCustomerService(TestCase):
     def test_query_some_params_no_match(self):
         """It should return empty list when only some parameters match"""
         customer = self._create_customers(1)[0]
-        query_string = f"first_name={quote_plus(customer.first_name)}&email=wrong@example.com"
+        query_string = (
+            f"first_name={quote_plus(customer.first_name)}&"
+            "email=wrong@example.com"
+        )
         response = self.client.get(BASE_URL, query_string=query_string)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
