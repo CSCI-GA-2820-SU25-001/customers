@@ -529,7 +529,7 @@ class TestCustomerService(TestCase):
         """It should not Update a Customer with wrong content type"""
         test_customer = self._create_customers(1)[0]
         response = self.client.put(f"{BASE_URL}/{test_customer.id}",
-                                    json={"first_name": "New Name"}, headers={"Content-Type": "application/xml"})
+                                   json={"first_name": "New Name"}, headers={"Content-Type": "application/xml"})
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     def test_update_customer_bad_data(self):
