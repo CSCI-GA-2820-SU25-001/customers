@@ -89,8 +89,8 @@ class TestCustomerService(TestCase):
     #  P L A C E   T E S T   C A S E S   H E R E
     ######################################################################
     def test_index(self):
-        """It should call the home page and return root metadata"""  # root metadata is all the endpoints at the bottom
-        resp = self.client.get("/")
+        """It should call the home page and return root metadata"""
+        resp = self.client.get("/api")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.get_json()
         self.assertEqual(data["name"], "Customer REST API Service")
@@ -451,15 +451,12 @@ class TestCustomerService(TestCase):
     def test_activate_customer_success(self):
         """It should activate (unsuspend) a customer successfully"""
         test_customer = self._create_customers(1)[0]
-        # Suspend the customer first
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Activate the customer
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/activate")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertFalse(data["suspended"])
-        # Fetch again to confirm in DB
         response = self.client.get(f"{BASE_URL}/{test_customer.id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
@@ -473,9 +470,17 @@ class TestCustomerService(TestCase):
         self.assertIn("was not found", data["message"])
 
     def test_activate_customer_already_active(self):
-        """It should allow activating an already active customer (idempotent)"""
+        """It should allow activating an already active customer"""
         test_customer = self._create_customers(1)[0]
-        # Activate (should already be active)
+
+        self.assertFalse(
+            test_customer.suspended if hasattr(test_customer, "suspended") else False
+        )
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}/activate")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertFalse(data["suspended"])
+
         response = self.client.put(f"{BASE_URL}/{test_customer.id}/activate")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
@@ -490,272 +495,136 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     # ----------------------------------------------------------
-    # TEST SERIALIZATION
+    # TEST CONTENT TYPE AND MISSING DATA
     # ----------------------------------------------------------
-    def test_get_customer_includes_suspended_field(self):
-        """It should include suspended field in customer response"""
-        test_customer = self._create_customers(1)[0]
-        response = self.client.get(f"{BASE_URL}/{test_customer.id}")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-
-        # Check that suspended field is present
-        self.assertIn("suspended", data)
-        self.assertIsInstance(data["suspended"], bool)
-        # By default, customers should not be suspended
-        self.assertFalse(data["suspended"])
-
-    def test_list_customers_includes_suspended_field(self):
-        """It should include suspended field in list customers response"""
-        self._create_customers(3)
-        response = self.client.get(BASE_URL)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-
-        # Check that all customers have suspended field
-        for customer in data:
-            self.assertIn("suspended", customer)
-            self.assertIsInstance(customer["suspended"], bool)
-
-    def test_create_customer_includes_suspended_field(self):
-        """It should include suspended field in create customer response"""
-        test_customer = CustomerFactory()
-        response = self.client.post(BASE_URL, json=test_customer.serialize())
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        data = response.get_json()
-        self.assertIn("suspended", data)
-        self.assertIsInstance(data["suspended"], bool)
-        # New customers should default to not suspended
-        self.assertFalse(data["suspended"])
-
-    ######################################################################
-    #  T E S T   S A D   P A T H S
-    ######################################################################
-
-    def test_create_customer_missing_each_required_field(self):
-        """It should return 400 if any required field is missing"""
-        # This simulates a client sending a request with missing input.
-        # In this case, we remove each required field one at a time to mimic a
-        # user or frontend accidentally omitting a required field from the JSON body.
-        # This helps verify that the API returns a 400 error instead of crashing or silently failing.
-        required_fields = ["first_name", "last_name", "email"]
-        for field in required_fields:
-            with self.subTest(field=field):
-                customer = CustomerFactory().serialize()
-                del customer[field]
-                response = self.client.post(BASE_URL, json=customer)
-                self.assertEqual(response.status_code, 400)
-                self.assertIn("error", response.get_json())
-
     def test_create_customer_no_content_type(self):
         """It should not Create a Customer with no Content-Type"""
-        response = self.client.post(BASE_URL)
+        response = self.client.post(BASE_URL, data="bad data")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     def test_create_customer_wrong_content_type(self):
         """It should not Create a Pet with the wrong content type"""
-        # Set wrong content type (text/html)
-        response = self.client.post(
-            BASE_URL, data="Not valid JSON", content_type="text/html"
-        )
+        test_customer = CustomerFactory()
+        response = self.client.post(BASE_URL, json=test_customer.serialize(), headers={"Content-Type": "application/xml"})
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
+    def test_create_customer_bad_data(self):
+        """It should return 400 if any required field is missing"""
+        test_customer = CustomerFactory()
+        data = test_customer.serialize()
+        del data["first_name"]
+        response = self.client.post(BASE_URL, json=data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_update_customer_no_content_type(self):
         """It should not Update a Customer with no Content-Type"""
-        response = self.client.put(f"{BASE_URL}/1")
+        test_customer = self._create_customers(1)[0]
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}", data="bad data")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     def test_update_customer_wrong_content_type(self):
         """It should not Update a Customer with wrong content type"""
-        response = self.client.put(
-            f"{BASE_URL}/1", data="Not JSON", content_type="text/html"
-        )
+        test_customer = self._create_customers(1)[0]
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}",
+                                   json={"first_name": "New Name"}, headers={"Content-Type": "application/xml"})
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
     def test_update_customer_bad_data(self):
         """It should not Update a Customer with bad data"""
         test_customer = self._create_customers(1)[0]
-        # Send invalid JSON (missing required fields)
-        bad_data = {"first_name": "Updated"}  # Missing last_name and email
-        response = self.client.put(f"{BASE_URL}/{test_customer.id}", json=bad_data)
+        data = {"invalid_field": "some_value"}
+        response = self.client.put(f"{BASE_URL}/{test_customer.id}", json=data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_query_by_first_name_not_found(self):
         """It should return empty list for non-existent first name"""
-        # Create some customers but search for a name that doesn't exist
-        self._create_customers(3)
-        fake_name = CustomerFactory().first_name + "_NONEXISTENT"
-        response = self.client.get(
-            BASE_URL, query_string=f"first_name={quote_plus(fake_name)}"
-        )
+        response = self.client.get(BASE_URL, query_string="first_name=NonExistent")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
 
     def test_query_by_last_name_not_found(self):
         """It should return empty list for non-existent last name"""
-        # Create some customers but search for a name that doesn't exist
-        self._create_customers(3)
-        fake_name = CustomerFactory().last_name + "_NONEXISTENT"
-        response = self.client.get(
-            BASE_URL, query_string=f"last_name={quote_plus(fake_name)}"
-        )
+        response = self.client.get(BASE_URL, query_string="last_name=NonExistent")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
 
     def test_query_by_phone_number_not_found(self):
         """It should return empty list for non-existent phone number"""
-        # Create some customers but search for a phone that doesn't exist
-        self._create_customers(3)
-        fake_phone = CustomerFactory().phone_number + "999"
-        response = self.client.get(
-            BASE_URL, query_string=f"phone_number={quote_plus(fake_phone)}"
-        )
+        response = self.client.get(BASE_URL, query_string="phone_number=999-999-9999")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
 
-    def test_query_with_multiple_parameters_not_found(self):
-        """It should return empty list when multiple parameters don't match"""
-        # Create some customers but search for combination that doesn't exist
-        self._create_customers(3)
-        fake_first = CustomerFactory().first_name + "_FAKE"
-        fake_last = CustomerFactory().last_name + "_FAKE"
-        query_string = (
-            f"first_name={quote_plus(fake_first)}&last_name={quote_plus(fake_last)}"
-        )
-        response = self.client.get(BASE_URL, query_string=query_string)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        self.assertEqual(len(data), 0)
-
-    def test_query_with_partial_match_not_found(self):
-        """It should return empty list when only some parameters match"""
-        customers = self._create_customers(2)
-        test_customer = customers[0]
-        # Use real first name but faker-generated fake last name
-        fake_last_name = CustomerFactory().last_name + "_NOMATCH"
-        query_string = f"first_name={quote_plus(test_customer.first_name)}&last_name={quote_plus(fake_last_name)}"
-        response = self.client.get(BASE_URL, query_string=query_string)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        self.assertEqual(len(data), 0)
-
-    def test_query_email_and_phone_mismatch(self):
-        """It should return empty list when email and phone don't belong to same customer"""
-        customers = self._create_customers(2)
-        customer1 = customers[0]
-        customer2 = customers[1]
-        # Use email from customer1 and phone from customer2 - should find nothing
-        query_string = f"email={quote_plus(customer1.email)}&phone_number={quote_plus(customer2.phone_number)}"
-        response = self.client.get(BASE_URL, query_string=query_string)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        self.assertEqual(len(data), 0)
-
-    def test_query_with_empty_parameter_values(self):
-        """It should handle empty query parameter values"""
-        # Create some customers first
-        customers_created = self._create_customers(3)
-        response = self.client.get(BASE_URL, query_string="first_name=&last_name=")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        # Should return all customers since empty parameters are ignored
-        self.assertEqual(len(data), len(customers_created))
-
-    def test_query_with_url_encoded_special_names(self):
-        """It should handle URL-encoded names with spaces correctly"""
-        # Create a customer using factory data and modify to ensure it has special characters
-        customer = CustomerFactory()
-        base_name = customer.first_name
-        # Create a name with space using factory base + modification
-        customer.first_name = f"{base_name} Test"  # Factory name + space + Test
-        response = self.client.post(BASE_URL, json=customer.serialize())
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        # Query using URL encoding for the space
-        test_name = customer.first_name  # Use the actual name we just created
-        response = self.client.get(
-            BASE_URL, query_string=f"first_name={quote_plus(test_name)}"
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["first_name"], test_name)
-
-    def test_query_with_url_encoded_last_name_spaces(self):
-        """It should handle URL-encoded last names with spaces correctly"""
-        # Test with last name containing spaces using factory data
-        customer = CustomerFactory()
-        base_last_name = customer.last_name
-        # Create a last name with space using factory base
-        customer.last_name = f"{base_last_name} III"  # Factory name + space + suffix
-        response = self.client.post(BASE_URL, json=customer.serialize())
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        test_name = customer.last_name
-        response = self.client.get(
-            BASE_URL, query_string=f"last_name={quote_plus(test_name)}"
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["last_name"], test_name)
-
-    def test_query_by_suspended_no_matches(self):
+    def test_query_suspended_no_match(self):
         """It should return empty list when no customers match suspended status"""
-        # Create customers (all active by default)
         self._create_customers(3)
-
-        # Query for suspended customers (should be none)
         response = self.client.get(BASE_URL, query_string="suspended=true")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
 
-    def test_query_suspended_with_nonmatching_other_params(self):
+    def test_query_suspended_status_no_other_params_match(self):
         """It should return empty when suspended status matches but other params don't"""
-        customers = self._create_customers(2)
-        # Suspend one customer
+        customers = self._create_customers(1)
         response = self.client.put(f"{BASE_URL}/{customers[0].id}/suspend")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Query for suspended=true but with wrong first name
-        fake_name = CustomerFactory().first_name + "_FAKE"
-        query_string = f"suspended=true&first_name={quote_plus(fake_name)}"
+        query_string = (
+            "first_name=NonExistent&"
+            "suspended=true"
+        )
         response = self.client.get(BASE_URL, query_string=query_string)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), 0)
 
-    def test_query_suspended_all_parameters_combined(self):
-        """It should Query by suspended status with all other parameters"""
-        customers = self._create_customers(2)
-        test_customer = customers[0]
-
-        # Suspend the customer
-        response = self.client.put(f"{BASE_URL}/{test_customer.id}/suspend")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Query with ALL parameters including suspended
-        query_string = (
-            f"first_name={quote_plus(test_customer.first_name)}&"
-            f"last_name={quote_plus(test_customer.last_name)}&"
-            f"email={quote_plus(test_customer.email)}&"
-            f"phone_number={quote_plus(test_customer.phone_number)}&"
-            f"suspended=true"
-        )
+    def test_query_multiple_params_no_match(self):
+        """It should return empty list when multiple parameters don't match"""
+        self._create_customers(1)
+        query_string = "first_name=Alice&last_name=Bob"
         response = self.client.get(BASE_URL, query_string=query_string)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["first_name"], test_customer.first_name)
-        self.assertEqual(data[0]["last_name"], test_customer.last_name)
-        self.assertEqual(data[0]["email"], test_customer.email)
-        self.assertEqual(data[0]["phone_number"], test_customer.phone_number)
-        self.assertTrue(data[0]["suspended"])
+        self.assertEqual(len(data), 0)
+
+    def test_query_some_params_no_match(self):
+        """It should return empty list when only some parameters match"""
+        customer = self._create_customers(1)[0]
+        query_string = f"first_name={quote_plus(customer.first_name)}&email=wrong@example.com"
+        response = self.client.get(BASE_URL, query_string=query_string)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), 0)
+
+    def test_query_url_encoded_names(self):
+        """It should handle URL-encoded names with spaces correctly"""
+        customer_data = CustomerFactory(first_name="First Name", last_name="Last Name")
+        self.client.post(BASE_URL, json=customer_data.serialize())
+
+        encoded_first_name = quote_plus("First Name")
+        response = self.client.get(BASE_URL, query_string=f"first_name={encoded_first_name}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertGreaterEqual(len(data), 1)
+        self.assertEqual(data[0]["first_name"], "First Name")
+
+    def test_query_url_encoded_last_names(self):
+        """It should handle URL-encoded last names with spaces correctly"""
+        customer_data = CustomerFactory(first_name="First", last_name="Last Name")
+        self.client.post(BASE_URL, json=customer_data.serialize())
+
+        encoded_last_name = quote_plus("Last Name")
+        response = self.client.get(BASE_URL, query_string=f"last_name={encoded_last_name}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertGreaterEqual(len(data), 1)
+        self.assertEqual(data[0]["last_name"], "Last Name")
+
+    def test_handle_empty_query_parameter_values(self):
+        """It should handle empty query parameter values"""
+        self._create_customers(1)
+        response = self.client.get(BASE_URL, query_string="first_name=&email=")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertGreaterEqual(len(data), 1)

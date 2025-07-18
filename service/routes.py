@@ -41,8 +41,16 @@ def health_check():
 ######################################################################
 @app.route("/")
 def index():
-    """Base URL for our service"""
-    # This now returns JSON metadata as expected by the test
+    """Base URL for our service (serves the UI)"""
+    return app.send_static_file("index.html")
+
+
+######################################################################
+# GET API METADATA (Endpoint for API documentation/metadata)
+######################################################################
+@app.route("/api")
+def api_metadata():
+    """Returns API documentation/metadata"""
     return (
         jsonify(
             name="Customer REST API Service",
