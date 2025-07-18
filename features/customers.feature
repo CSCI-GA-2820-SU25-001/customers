@@ -19,7 +19,7 @@ Scenario: The server is running
 
 Scenario: Create a Customer
     When I visit the "Home Page"
-    And I set the "First Name" to "First" 
+    And I set the "First Name" to "First"
     And I set the "Last Name" to "Last"
     And I set the "Email Address" to "test@email.com"
     And I set the "Phone Number" to "123-456-7890"
@@ -75,7 +75,7 @@ Scenario: Update a Customer
     Then I should see the message "Customer found."
     And I should see "updated@email.com" in the "Email Address" field
 
-Scenario: List all pets
+Scenario: List all Customers
     When I visit the "Home Page"
     And I press the "Search" button
     Then I should see the message "Customer found."
@@ -83,3 +83,15 @@ Scenario: List all pets
     And I should see "First1" in the results
     And I should see "First2" in the results
     And I should see "First3" in the results
+
+Scenario: Suspend an active Customer
+    Given I am viewing an active customer's details
+    When I click the "Suspend" button and confirm the action
+    Then I should see the message "Customer suspended successfully"
+    And the "Suspended" field should be "true"
+
+Scenario: Activate a suspended Customer
+    Given I am viewing a suspended customer's details
+    When I click the "Activate" button and confirm the action
+    Then I should see the message "Customer activated successfully"
+    And the "Suspended" field should be "false"
