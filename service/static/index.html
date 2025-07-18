@@ -10,35 +10,35 @@
         body { padding: 2rem; }
         .container { max-width: 1200px; }
         .form-group { margin-bottom: 1rem; }
-        .well { 
-            background-color: #f5f5f5; 
-            border: 1px solid #e3e3e3; 
-            border-radius: 4px; 
-            padding: 19px; 
-            margin-bottom: 20px; 
+        .well {
+            background-color: #f5f5f5;
+            border: 1px solid #e3e3e3;
+            border-radius: 4px;
+            padding: 19px;
+            margin-bottom: 20px;
         }
-        .control-label { 
-            text-align: right; 
-            padding-top: 7px; 
-            margin-bottom: 0; 
-            font-weight: bold; 
+        .control-label {
+            text-align: right;
+            padding-top: 7px;
+            margin-bottom: 0;
+            font-weight: bold;
         }
         .col-sm-offset-2 { margin-left: 16.66666667%; }
-        .page-header { 
-            padding-bottom: 9px; 
-            margin: 20px 0 30px; 
-            border-bottom: 1px solid #eee; 
+        .page-header {
+            padding-bottom: 9px;
+            margin: 20px 0 30px;
+            border-bottom: 1px solid #eee;
         }
-        #flash_message { 
-            min-height: 20px; 
-            font-weight: bold; 
+        #flash_message {
+            min-height: 20px;
+            font-weight: bold;
         }
         .table-responsive { margin-bottom: 20px; }
-        .search-section { 
-            background-color: #f8f9fa; 
-            padding: 20px; 
-            border-radius: 5px; 
-            margin: 20px 0; 
+        .search-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
         }
         .customer-actions { margin-top: 20px; }
         .action-buttons .btn { margin-right: 5px; margin-bottom: 5px; }
@@ -116,6 +116,17 @@
               </div>
             </div>
 
+            <!-- SUSPENDED STATUS (for individual customer) -->
+            <div class="form-group">
+                <label class="control-label col-sm-2" for="customer_suspended">Suspended:</label>
+                <div class="col-sm-10">
+                    <select class="form-control" id="customer_suspended">
+                        <option value="false">False</option>
+                        <option value="true">True</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- MAIN ACTION BUTTONS -->
             <div class="form-group">
               <div class="col-sm-offset-2 col-sm-10 action-buttons">
@@ -123,6 +134,9 @@
                 <button type="button" class="btn btn-secondary" id="clear-btn">Clear</button>
                 <button type="button" class="btn btn-success" id="create-btn">Create</button>
                 <button type="button" class="btn btn-warning" id="update-btn">Update</button>
+                <!-- These are the buttons that Behave is targeting -->
+                <button type="button" class="btn btn-warning" id="suspend-btn">Suspend</button>
+                <button type="button" class="btn btn-success" id="activate-btn">Activate</button>
               </div>
             </div>
           </div> <!-- form horizontal -->
@@ -182,7 +196,8 @@
                 <p class="card-text text-muted">Enter Customer ID to suspend account</p>
                 <div class="input-group">
                   <input type="number" class="form-control" id="suspend_customer_id" placeholder="Customer ID">
-                  <button class="btn btn-warning" id="suspend-customer-btn">Suspend</button>
+                  <!-- This button is now redundant for Behave tests but kept for manual UI interaction if needed -->
+                  <button class="btn btn-warning" id="suspend-customer-btn-manual">Suspend</button>
                 </div>
               </div>
             </div>
@@ -194,7 +209,8 @@
                 <p class="card-text text-muted">Enter Customer ID to activate account</p>
                 <div class="input-group">
                   <input type="number" class="form-control" id="activate_customer_id" placeholder="Customer ID">
-                  <button class="btn btn-success" id="activate-customer-btn">Activate</button>
+                  <!-- This button is now redundant for Behave tests but kept for manual UI interaction if needed -->
+                  <button class="btn btn-success" id="activate-customer-btn-manual">Activate</button>
                 </div>
               </div>
             </div>
@@ -224,6 +240,7 @@
             <th class="col-md-3">Email</th>
             <th class="col-md-2">Phone</th>
             <th class="col-md-2">Address</th>
+            <th class="col-md-1">Suspended</th> <!-- Added Suspended column header -->
           </tr>
           </thead>
           <tbody></tbody>
@@ -232,7 +249,7 @@
 
       <!-- LIVE CUSTOMER TABLE (Your original functionality) -->
       <div class="mt-4">
-        <h4>All Customers 
+        <h4>All Customers
           <button class="btn btn-sm btn-outline-primary" id="reload-table-btn">Reload</button>
         </h4>
         <div class="table-responsive">
@@ -277,25 +294,25 @@
     // Advanced search functionality
     $("#advanced-search-btn").click(function() {
       let queryParams = [];
-      
+
       const searchFields = {
         'search_first_name': 'first_name',
-        'search_last_name': 'last_name', 
+        'search_last_name': 'last_name',
         'search_email': 'email',
         'search_phone': 'phone_number',
         'search_id': 'id',
         'search_suspended': 'suspended'
       };
-      
+
       for (let fieldId in searchFields) {
         const value = $("#" + fieldId).val().trim();
         if (value) {
           queryParams.push(searchFields[fieldId] + '=' + encodeURIComponent(value));
         }
       }
-      
+
       const url = queryParams.length > 0 ? '/customers?' + queryParams.join('&') : '/customers';
-      
+
       $.ajax({
         type: "GET",
         url: url,
@@ -309,47 +326,77 @@
       });
     });
 
-    // Suspend customer functionality
-    $("#suspend-customer-btn").click(function() {
-      const id = $("#suspend_customer_id").val();
-      if (!id) {
-        $("#flash_message").text("Please enter Customer ID to suspend");
-        return;
-      }
-      
+    // Suspend customer functionality (triggered by #suspend-customer-btn-manual or dynamically from table)
+    function performSuspend(id) {
       $.ajax({
         type: "PUT",
         url: `/customers/${id}/suspend`,
         contentType: "application/json"
-      }).done(function() {
+      }).done(function(res) {
         $("#flash_message").text("Customer suspended successfully");
-        $("#suspend_customer_id").val("");
+        // Update the form's suspended dropdown
+        $("#customer_suspended").val(res.suspended ? 'true' : 'false');
         loadAllCustomers();
       }).fail(function() {
         $("#flash_message").text("Failed to suspend customer");
       });
-    });
+    }
 
-    // Activate customer functionality  
-    $("#activate-customer-btn").click(function() {
-      const id = $("#activate_customer_id").val();
-      if (!id) {
-        $("#flash_message").text("Please enter Customer ID to activate");
-        return;
-      }
-      
+    // Activate customer functionality (triggered by #activate-customer-btn-manual or dynamically from table)
+    function performActivate(id) {
       $.ajax({
-        type: "PUT", 
+        type: "PUT",
         url: `/customers/${id}/activate`,
         contentType: "application/json"
-      }).done(function() {
+      }).done(function(res) {
         $("#flash_message").text("Customer activated successfully");
-        $("#activate_customer_id").val("");
+        // Update the form's suspended dropdown
+        $("#customer_suspended").val(res.suspended ? 'true' : 'false');
         loadAllCustomers();
       }).fail(function() {
         $("#flash_message").text("Failed to activate customer");
       });
+    }
+
+    // Wire up the main form's Suspend button
+    $("#suspend-btn").click(function() {
+      const id = $("#customer_id").val(); // Get ID from the main form's ID field
+      if (!id) {
+        $("#flash_message").text("Please retrieve a Customer first to suspend.");
+        return;
+      }
+      performSuspend(id);
     });
+
+    // Wire up the main form's Activate button
+    $("#activate-btn").click(function() {
+      const id = $("#customer_id").val(); // Get ID from the main form's ID field
+      if (!id) {
+        $("#flash_message").text("Please retrieve a Customer first to activate.");
+        return;
+      }
+      performActivate(id);
+    });
+
+    // Manual Suspend/Activate buttons (if you still want them)
+    $("#suspend-customer-btn-manual").click(function() {
+        const id = $("#suspend_customer_id").val();
+        if (!id) {
+            $("#flash_message").text("Please enter Customer ID to suspend");
+            return;
+        }
+        performSuspend(id);
+    });
+
+    $("#activate-customer-btn-manual").click(function() {
+        const id = $("#activate_customer_id").val();
+        if (!id) {
+            $("#flash_message").text("Please enter Customer ID to activate");
+            return;
+        }
+        performActivate(id);
+    });
+
 
     // Refresh functionality
     $("#refresh-btn, #reload-table-btn").click(function() {
@@ -377,7 +424,7 @@
     function updateSearchResults(customers) {
       const tbody = $("#search_results tbody");
       tbody.empty();
-      
+
       customers.forEach(function(customer) {
         const row = `<tr>
           <td>${customer.id}</td>
@@ -386,6 +433,7 @@
           <td>${customer.email}</td>
           <td>${customer.phone_number || ''}</td>
           <td>${customer.address || ''}</td>
+          <td><span class="badge ${customer.suspended ? 'bg-warning' : 'bg-success'}">${customer.suspended ? 'Suspended' : 'Active'}</span></td>
         </tr>`;
         tbody.append(row);
       });
@@ -400,7 +448,7 @@
       }).done(function(customers) {
         const tbody = $("#customer-table tbody");
         tbody.empty();
-        
+
         customers.forEach(function(c) {
           const row = `<tr>
             <td>${c.id}</td>
@@ -421,17 +469,19 @@
       });
     }
 
-    // Event delegation for dynamic buttons
+    // Event delegation for dynamic buttons within the live table
     $(document).on('click', '.suspend-btn', function() {
       const id = $(this).data('id');
-      $("#suspend_customer_id").val(id);
-      $("#suspend-customer-btn").click();
+      // Populate the main form's ID field and trigger its suspend button
+      $("#customer_id").val(id);
+      $("#suspend-btn").click();
     });
 
     $(document).on('click', '.activate-btn', function() {
-      const id = $(this).data('id'); 
-      $("#activate_customer_id").val(id);
-      $("#activate-customer-btn").click();
+      const id = $(this).data('id');
+      // Populate the main form's ID field and trigger its activate button
+      $("#customer_id").val(id);
+      $("#activate-btn").click();
     });
 
     $(document).on('click', '.delete-btn', function() {
