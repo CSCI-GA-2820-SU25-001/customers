@@ -74,3 +74,12 @@ Scenario: Update a Customer
     And I press the "Retrieve" button
     Then I should see the message "Customer found."
     And I should see "updated@email.com" in the "Email Address" field
+
+Scenario: List all pets
+    When I visit the "Home Page"
+    And I press the "Search" button
+    Then I should see the message "Customer found."
+    And I should see "First" in the results
+    And I should see "First1" in the results
+    And I should see "First2" in the results
+    And I should see "First3" in the results
