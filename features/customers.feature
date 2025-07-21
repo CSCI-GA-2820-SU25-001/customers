@@ -95,3 +95,20 @@ Scenario: Activate a suspended Customer
     When I click the "Activate" button and confirm the action
     Then I should see the message "Customer activated successfully"
     And the "Suspended" field should be "false"
+
+Scenario: Filter customers by suspended status
+    When I visit the "Home Page"
+    And I set the "First Name" to "First2"
+    And I press the "Search" button
+    Then I should see the message "Customer found."
+    When I copy the "Id" field
+    And I press the "Clear" button
+    And I paste the "Id" field
+    And I click the "Suspend" button and confirm the action
+    Then I should see the message "Customer suspended successfully"
+    When I select "Suspended Only" in the "SuspendedStatus" dropdown
+    And I press the "Search" button
+    Then I should see "First2" in the results
+    And I should not see "First" in the results
+    And I should not see "First1" in the results
+    And I should not see "First3" in the results

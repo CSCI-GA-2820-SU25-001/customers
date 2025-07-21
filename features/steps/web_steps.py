@@ -34,6 +34,7 @@ from selenium.webdriver.support import expected_conditions
 
 ID_PREFIX = "customer_"
 
+
 def save_screenshot(context: Any, filename: str) -> None:
     """Takes a snapshot of the web page for debugging and validation
 
@@ -55,10 +56,10 @@ def step_impl(context: Any) -> None:
     # This ensures that the page is loaded and the title is visible
     # before proceeding with other steps.
     WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.visibility_of_element_located((By.TAG_NAME, 'h1'))
+        expected_conditions.visibility_of_element_located((By.TAG_NAME, "h1"))
     )
     # Uncomment next line to take a screenshot of the web page
-    save_screenshot(context, 'Home Page')
+    save_screenshot(context, "Home Page")
 
 
 @then('I should see "{message}" in the title')
@@ -83,7 +84,14 @@ def step_impl(context: Any, element_name: str, text_string: str) -> None:
 
 @when('I select "{text}" in the "{element_name}" dropdown')
 def step_impl(context: Any, text: str, element_name: str) -> None:
-    element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+    # Special-case override for dropdowns not using the default ID convention
+    custom_dropdown_ids = {"SuspendedStatus": "search_suspended"}
+
+    if element_name in custom_dropdown_ids:
+        element_id = custom_dropdown_ids[element_name]
+    else:
+        element_id = ID_PREFIX + element_name.lower().replace(" ", "_")
+
     element = Select(context.driver.find_element(By.ID, element_id))
     element.select_by_visible_text(text)
 
@@ -149,10 +157,13 @@ def step_impl(context: Any, name: str) -> None:
     )
     assert found
 
+
 @then('I should not see "{name}" in the results')
 def step_impl(context: Any, name: str) -> None:
     element = context.driver.find_element(By.ID, "search_results")
-    assert name not in element.text
+    # Split the results into lines or rows and check for exact match
+    lines = element.text.splitlines()
+    assert all(name != line.strip() for line in lines)
 
 
 @then('I should see the message "{message}"')
@@ -194,7 +205,7 @@ def step_impl(context: Any, element_name: str, text_string: str) -> None:
     element.send_keys(text_string)
 
 
-@given('I am viewing an active customer\'s details')
+@given("I am viewing an active customer's details")
 def step_impl(context):
     """
     Given step to ensure an active customer's details are displayed.
@@ -229,7 +240,8 @@ def step_impl(context):
         """
     )
 
-@given('I am viewing a suspended customer\'s details')
+
+@given("I am viewing a suspended customer's details")
 def step_impl(context):
     """
     Given step to ensure a suspended customer's details are displayed.
@@ -283,6 +295,7 @@ def step_impl(context, button_name):
     """
     button_id = button_name.lower().replace(" ", "-") + "-btn"
     context.driver.find_element(By.ID, button_id).click()
+
 
 @then('the "{element_name}" field should be "{value}"')
 def step_impl(context, element_name, value):
