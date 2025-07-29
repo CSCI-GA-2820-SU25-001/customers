@@ -340,6 +340,12 @@ def unprocessable_entity(error):
     app.logger.error(f"422 Unprocessable Entity: {str(error)}")
     return jsonify({"error": "Unprocessable Entity", "message": str(error)}), 422
 
+# Add error handler for 401 Unauthorized
+@app.errorhandler(401)
+def unauthorized(error):
+    app.logger.error(f"401 Unauthorized: {str(error)}")
+    return jsonify({"error": "Unauthorized", "message": str(error)}), 401
+
 
 # Add error handler for generic 500 errors to avoid leaking details
 @app.errorhandler(500)

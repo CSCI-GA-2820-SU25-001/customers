@@ -635,3 +635,52 @@ class TestCustomerService(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertGreaterEqual(len(data), 1)
+
+    def test_unauthorized_error_handler(self):
+        """It should return 401 for unauthorized access (simulated)"""
+        # Simulate by calling the error handler directly
+        from service.routes import unauthorized
+        with app.test_request_context():
+            response = unauthorized("Unauthorized access")
+            self.assertEqual(response[1], 401)
+            self.assertIn("Unauthorized", response[0].json["error"])
+
+    def test_method_not_allowed_error_handler(self):
+        """It should return 405 for method not allowed (simulated)"""
+        from service.routes import method_not_allowed
+        with app.test_request_context():
+            response = method_not_allowed("Method not allowed")
+            self.assertEqual(response[1], 405)
+            self.assertIn("Method Not Allowed", response[0].json["error"])
+
+    def test_unprocessable_entity_error_handler(self):
+        """It should return 422 for unprocessable entity (simulated)"""
+        from service.routes import unprocessable_entity
+        with app.test_request_context():
+            response = unprocessable_entity("Unprocessable entity")
+            self.assertEqual(response[1], 422)
+            self.assertIn("Unprocessable Entity", response[0].json["error"])
+
+    def test_internal_server_error_handler(self):
+        """It should return 500 for internal server error (simulated)"""
+        from service.routes import internal_server_error
+        with app.test_request_context():
+            response = internal_server_error("Internal error")
+            self.assertEqual(response[1], 500)
+            self.assertIn("Internal Server Error", response[0].json["error"])
+
+    def test_bad_request_error_handler(self):
+        """It should return 400 for bad request (simulated)"""
+        from service.routes import bad_request
+        with app.test_request_context():
+            response = bad_request("Bad request")
+            self.assertEqual(response[1], 400)
+            self.assertIn("Bad Request", response[0].json["error"])
+
+    def test_not_found_error_handler(self):
+        """It should return 404 for not found (simulated)"""
+        from service.routes import not_found
+        with app.test_request_context():
+            response = not_found("Not found")
+            self.assertEqual(response[1], 404)
+            self.assertIn("Not Found", response[0].json["error"])
