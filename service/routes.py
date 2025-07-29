@@ -353,4 +353,3 @@ def unauthorized(error):
 def internal_server_error(error):
     app.logger.error(f"500 Internal Server Error: {str(error)}")
     return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
-
