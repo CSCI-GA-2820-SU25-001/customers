@@ -26,7 +26,6 @@ from unittest import TestCase
 from wsgi import app
 from service.common import status
 from service.models import db, Customer
-from .factories import CustomerFactory
 from service.routes import (
     unauthorized,
     method_not_allowed,
@@ -35,6 +34,7 @@ from service.routes import (
     bad_request,
     not_found,
 )
+from .factories import CustomerFactory
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
