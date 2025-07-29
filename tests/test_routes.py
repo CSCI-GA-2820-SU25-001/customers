@@ -27,6 +27,14 @@ from wsgi import app
 from service.common import status
 from service.models import db, Customer
 from .factories import CustomerFactory
+from service.routes import (
+    unauthorized,
+    method_not_allowed,
+    unprocessable_entity,
+    internal_server_error,
+    bad_request,
+    not_found,
+)
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
@@ -638,8 +646,6 @@ class TestCustomerService(TestCase):
 
     def test_unauthorized_error_handler(self):
         """It should return 401 for unauthorized access (simulated)"""
-        # Simulate by calling the error handler directly
-        from service.routes import unauthorized
         with app.test_request_context():
             response = unauthorized("Unauthorized access")
             self.assertEqual(response[1], 401)
@@ -647,7 +653,6 @@ class TestCustomerService(TestCase):
 
     def test_method_not_allowed_error_handler(self):
         """It should return 405 for method not allowed (simulated)"""
-        from service.routes import method_not_allowed
         with app.test_request_context():
             response = method_not_allowed("Method not allowed")
             self.assertEqual(response[1], 405)
@@ -655,7 +660,6 @@ class TestCustomerService(TestCase):
 
     def test_unprocessable_entity_error_handler(self):
         """It should return 422 for unprocessable entity (simulated)"""
-        from service.routes import unprocessable_entity
         with app.test_request_context():
             response = unprocessable_entity("Unprocessable entity")
             self.assertEqual(response[1], 422)
@@ -663,7 +667,6 @@ class TestCustomerService(TestCase):
 
     def test_internal_server_error_handler(self):
         """It should return 500 for internal server error (simulated)"""
-        from service.routes import internal_server_error
         with app.test_request_context():
             response = internal_server_error("Internal error")
             self.assertEqual(response[1], 500)
@@ -671,7 +674,6 @@ class TestCustomerService(TestCase):
 
     def test_bad_request_error_handler(self):
         """It should return 400 for bad request (simulated)"""
-        from service.routes import bad_request
         with app.test_request_context():
             response = bad_request("Bad request")
             self.assertEqual(response[1], 400)
@@ -679,7 +681,6 @@ class TestCustomerService(TestCase):
 
     def test_not_found_error_handler(self):
         """It should return 404 for not found (simulated)"""
-        from service.routes import not_found
         with app.test_request_context():
             response = not_found("Not found")
             self.assertEqual(response[1], 404)
