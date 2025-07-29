@@ -311,3 +311,38 @@ def handle_data_validation_error(error):
     """Handles bad input data and returns a 400"""
     app.logger.error("DataValidationError: %s", str(error))
     return jsonify({"error": str(error)}), status.HTTP_400_BAD_REQUEST
+
+
+# Add error handler for 400 Bad Request
+@app.errorhandler(400)
+def bad_request(error):
+    app.logger.error(f"400 Bad Request: {str(error)}")
+    return jsonify({"error": "Bad Request", "message": str(error)}), 400
+
+
+# Add error handler for 404 Not Found
+@app.errorhandler(404)
+def not_found(error):
+    app.logger.error(f"404 Not Found: {str(error)}")
+    return jsonify({"error": "Not Found", "message": str(error)}), 404
+
+
+# Add error handler for 405 Method Not Allowed
+@app.errorhandler(405)
+def method_not_allowed(error):
+    app.logger.error(f"405 Method Not Allowed: {str(error)}")
+    return jsonify({"error": "Method Not Allowed", "message": str(error)}), 405
+
+
+# Add error handler for 422 Unprocessable Entity
+@app.errorhandler(422)
+def unprocessable_entity(error):
+    app.logger.error(f"422 Unprocessable Entity: {str(error)}")
+    return jsonify({"error": "Unprocessable Entity", "message": str(error)}), 422
+
+
+# Add error handler for generic 500 errors to avoid leaking details
+@app.errorhandler(500)
+def internal_server_error(error):
+    app.logger.error(f"500 Internal Server Error: {str(error)}")
+    return jsonify({"error": "Internal Server Error", "message": "An unexpected error occurred."}), 500
