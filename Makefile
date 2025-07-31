@@ -96,6 +96,11 @@ knative: ## Install Knative
 deploy: ## Deploy the service on local Kubernetes
 	$(info Deploying service locally...)
 	kubectl apply -f k8s/
+	$(info Waiting for postgres to be ready...)
+	kubectl wait --for=condition=ready pod postgres-0 --timeout=60s
+	$(info Waiting for customer service to be ready...)
+	kubectl wait --for=condition=ready pod -l app=customer --timeout=60s
+	$(info Deployment complete - services are ready!)
 
 ############################################################
 # COMMANDS FOR BUILDING THE IMAGE
