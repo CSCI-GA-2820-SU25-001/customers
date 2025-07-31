@@ -3,11 +3,6 @@ apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
   name: git-clone
-  labels:
-    app.kubernetes.io/version: "1.0"
-  annotations:
-    tekton.dev/displayName: "Git Clone"
-    tekton.dev/categories: Source Control
 spec:
   description: |
     Clones a Git repository into the provided workspace.
@@ -30,7 +25,8 @@ spec:
         set -e
         echo "Cloning $(params.repo-url) at revision $(params.revision)"
         cd $(workspaces.output.path)
-        git clone $(params.repo-url) .
+        git clone $(params.repo-url) repo
+        cd repo
         git checkout $(params.revision)
 ---
 apiVersion: tekton.dev/v1beta1
