@@ -1,71 +1,77 @@
+# Deploy PostgreSQL with persistent storage
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgresql-secret
+type: Opaque
+data:
+  POSTGRES_PASSWORD: cG9zdGdyZXM=  # postgres
+  POSTGRES_USER: cG9zdGdyZXM=      # postgres  
+  POSTGRES_DB: Y3VzdG9tZXJz        # customers
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres
-  labels:
-    app: postgres
+  name: postgresql
 spec:
-  serviceName: "postgres"
+  serviceName: postgresql
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: postgresql
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgresql
     spec:
       containers:
-        - name: postgres
-          image: "postgres:13-alpine"
-          env:
-            - name: POSTGRES_PASSWORD
-              value: "postgres"
-            - name: POSTGRES_DB
-              value: "customers"
-            - name: PGDATA
-              value: "/var/lib/postgresql/data/pgdata"
-          ports:
-            - containerPort: 5432
-              protocol: TCP
-          volumeMounts:
-          - name: postgres-storage
-            mountPath: /var/lib/postgresql/data
-          resources:
-            limits:
-              cpu: "0.50"
-              memory: "128Mi"
-            requests:
-              cpu: "0.25"        
-              memory: "64Mi"
-      volumes:
-      - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: postgres-data
-        # emptyDir: {}
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-data
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: "default"
+      - name: postgresql
+        image: postgres:13
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: postgresql-storage
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command:
+              - /bin/sh
+              - -c
+              - pg_isready -U \$POSTGRES_USER -d \$POSTGRES_DB
+          initialDelaySeconds: 15
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
-  labels:
-    app: postgres
+  name: postgresql
 spec:
+  selector:
+    app: postgresql
   ports:
   - port: 5432
     targetPort: 5432
-  selector:
-    app: postgres
