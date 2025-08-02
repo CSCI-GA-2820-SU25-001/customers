@@ -3,7 +3,7 @@ kind: Pipeline
 metadata:
   name: cd-pipeline
 spec:
-  description: Pipeline with custom git-clone step
+  description: Pipeline with custom git-clone step and lint task
   params:
     - name: GIT_REPO
       type: string
@@ -12,6 +12,12 @@ spec:
       type: string
       default: "main"
       description: The Git branch, tag, or commit to check out
+    - name: APP_NAME
+      type: string
+      description: The name of the application
+    - name: IMAGE_NAME
+      type: string
+      description: The fully qualified image name to build
   workspaces:
     - name: pipeline-workspace
       description: Shared workspace for all pipeline tasks
@@ -26,4 +32,23 @@ spec:
           value: $(params.GIT_REF)
       workspaces:
         - name: output
+          workspace: pipeline-workspace
+    
+    # ADD YOUR LINT TASK (Task 2)
+    - name: lint
+      taskRef:
+        name: pylint
+      runAfter:
+        - git-clone
+      params:
+        - name: path
+          value: "repo/service"  # Note: repo/ prefix because git-clone creates repo subdirectory
+        - name: args
+          value: 
+            - "--fail-under=7.0"
+            - "--max-line-length=127"
+            - "--disable=C0114,C0115,C0116"
+            - "--good-names=i,j,k,ex,Run,_,id,db"
+      workspaces:
+        - name: source
           workspace: pipeline-workspace
