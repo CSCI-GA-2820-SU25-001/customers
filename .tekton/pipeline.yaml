@@ -1,0 +1,94 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: cd-pipeline
+spec:
+  description: Pipeline with custom git-clone step and lint task
+  params:
+    - name: GIT_REPO
+      type: string
+      description: The Git repository to clone
+    - name: GIT_REF
+      type: string
+      default: "main"
+      description: The Git branch, tag, or commit to check out
+    - name: APP_NAME
+      type: string
+      description: The name of the application
+    - name: IMAGE_NAME
+      type: string
+      description: The fully qualified image name to build
+  workspaces:
+    - name: pipeline-workspace
+      description: Shared workspace for all pipeline tasks
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+      params:
+        - name: repo-url
+          value: $(params.GIT_REPO)
+        - name: revision
+          value: $(params.GIT_REF)
+      workspaces:
+        - name: output
+          workspace: pipeline-workspace
+    
+    # TASK 2: PYLINT (renamed from lint)
+    - name: pylint
+      taskRef:
+        name: pylint
+      runAfter:
+        - git-clone
+      params:
+        - name: path
+          value: "repo/service"
+        - name: args
+          value: 
+            - "--fail-under=7.0"
+            - "--max-line-length=127"
+            - "--disable=C0114,C0115,C0116"
+            - "--good-names=i,j,k,ex,Run,_,id,db"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+    
+    # TASK 4: BUILDAH (from teammate's branch)
+    - name: buildah
+      taskRef:
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah-1-19-0
+          - name: namespace
+            value: openshift-pipelines
+        resolver: cluster
+      runAfter:
+        - pylint  # Fixed dependency
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_NAME)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: BUILD_ARGS
+          value: []
+        - name: CONTEXT
+          value: "repo"  # Added repo prefix
+        - name: STORAGE_DRIVER
+          value: vfs
+        - name: FORMAT
+          value: oci
+        - name: BUILD_EXTRA_ARGS
+          value: ''
+        - name: PUSH_EXTRA_ARGS
+          value: ''
+        - name: SKIP_PUSH
+          value: 'false'
+        - name: TLS_VERIFY
+          value: 'true'
+        - name: VERBOSE
+          value: 'false'
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace

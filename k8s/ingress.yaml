@@ -1,10 +1,10 @@
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: customer
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    ingress.kubernetes.io/ssl-redirect: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   rules:
   - http:
@@ -13,6 +13,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: customer
+            name: customers  # Fixed: service name is 'customers' not 'customer'
             port:
               number: 8080
