@@ -34,21 +34,61 @@ spec:
         - name: output
           workspace: pipeline-workspace
     
-    # ADD YOUR LINT TASK (Task 2)
-    - name: lint
+    # TASK 2: PYLINT (renamed from lint)
+    - name: pylint
       taskRef:
         name: pylint
       runAfter:
         - git-clone
       params:
         - name: path
-          value: "repo/service"  # Note: repo/ prefix because git-clone creates repo subdirectory
+          value: "repo/service"
         - name: args
           value: 
             - "--fail-under=7.0"
             - "--max-line-length=127"
             - "--disable=C0114,C0115,C0116"
             - "--good-names=i,j,k,ex,Run,_,id,db"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+    
+    # TASK 4: BUILDAH (from teammate's branch)
+    - name: buildah
+      taskRef:
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah-1-19-0
+          - name: namespace
+            value: openshift-pipelines
+        resolver: cluster
+      runAfter:
+        - pylint  # Fixed dependency
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE_NAME)
+        - name: DOCKERFILE
+          value: ./Dockerfile
+        - name: BUILD_ARGS
+          value: []
+        - name: CONTEXT
+          value: "repo"  # Added repo prefix
+        - name: STORAGE_DRIVER
+          value: vfs
+        - name: FORMAT
+          value: oci
+        - name: BUILD_EXTRA_ARGS
+          value: ''
+        - name: PUSH_EXTRA_ARGS
+          value: ''
+        - name: SKIP_PUSH
+          value: 'false'
+        - name: TLS_VERIFY
+          value: 'true'
+        - name: VERBOSE
+          value: 'false'
       workspaces:
         - name: source
           workspace: pipeline-workspace
