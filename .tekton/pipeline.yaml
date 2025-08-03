@@ -3,7 +3,7 @@ kind: Pipeline
 metadata:
   name: cd-pipeline
 spec:
-  description: Pipeline with custom git-clone step
+  description: Pipeline with custom git-clone step and lint task
   params:
     - name: GIT_REPO
       type: string
@@ -14,12 +14,10 @@ spec:
       description: The Git branch, tag, or commit to check out
     - name: APP_NAME
       type: string
-      default: "petshop"
-      description: Name of the application
+      description: The name of the application
     - name: IMAGE_NAME
       type: string
-      default: 'image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.APP_NAME):latest'
-      description: Name of the image to build
+      description: The fully qualified image name to build
   workspaces:
     - name: pipeline-workspace
       description: Shared workspace for all pipeline tasks
@@ -35,7 +33,39 @@ spec:
       workspaces:
         - name: output
           workspace: pipeline-workspace
+    
+    # TASK 2: PYLINT (renamed from lint)
+    - name: pylint
+      taskRef:
+        name: pylint
+      runAfter:
+        - git-clone
+      params:
+        - name: path
+          value: "repo/service"
+        - name: args
+          value: 
+            - "--fail-under=7.0"
+            - "--max-line-length=127"
+            - "--disable=C0114,C0115,C0116"
+            - "--good-names=i,j,k,ex,Run,_,id,db"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+    
+    # TASK 4: BUILDAH (from teammate's branch)
     - name: buildah
+      taskRef:
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: buildah-1-19-0
+          - name: namespace
+            value: openshift-pipelines
+        resolver: cluster
+      runAfter:
+        - pylint  # Fixed dependency
       params:
         - name: IMAGE
           value: $(params.IMAGE_NAME)
@@ -44,7 +74,7 @@ spec:
         - name: BUILD_ARGS
           value: []
         - name: CONTEXT
-          value: .
+          value: "repo"  # Added repo prefix
         - name: STORAGE_DRIVER
           value: vfs
         - name: FORMAT
@@ -59,18 +89,6 @@ spec:
           value: 'true'
         - name: VERBOSE
           value: 'false'
-      runAfter:
-        - pylint
-        - testing
-      taskRef:
-        params:
-          - name: kind
-            value: task
-          - name: name
-            value: buildah-1-19-0
-          - name: namespace
-            value: openshift-pipelines
-        resolver: cluster
       workspaces:
         - name: source
           workspace: pipeline-workspace
