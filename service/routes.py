@@ -28,7 +28,6 @@ from service.common import status  # HTTP Status Codes
 from flask_restx import Api, Resource, fields, reqparse, inputs
 
 
-
 ######################################################################
 # GET HEALTH CHECK
 ######################################################################
@@ -58,14 +57,14 @@ def api_metadata():
             name="Customer REST API Service",
             version="1.0.0",
             paths={
-                "create": url_for("create_customers", _external=True),
-                "list_all": url_for("list_customers", _external=True),
-                "read_one": url_for("get_customers", customer_id=0, _external=True),
-                "update": url_for("update_customers", customer_id=0, _external=True),
-                "delete": url_for("delete_customers", customer_id=0, _external=True),
-                "suspend": url_for("suspend_customer", customer_id=0, _external=True),
-                "activate": url_for("activate_customer", customer_id=0, _external=True),
-                "find_by_email": url_for("list_customers", email="test@example.com", _external=True),
+                "create": url_for("customer_collection", _external=True),
+                "list_all": url_for("customer_collection", _external=True),
+                "read_one": url_for("customer_resource", customer_id=0, _external=True),
+                "update": url_for("customer_resource", customer_id=0, _external=True),
+                "delete": url_for("customer_resource", customer_id=0, _external=True),
+                "suspend": url_for("customer_suspend_resource", customer_id=0, _external=True),
+                "activate": url_for("customer_activate_resource", customer_id=0, _external=True),
+                "find_by_email": url_for("customer_collection", email="test@example.com", _external=True),
             },
         ),
         status.HTTP_200_OK,
@@ -95,6 +94,7 @@ customer_model = api.model(
         "last_name": fields.String(required=True, description="Last name of the customer"),
         "email": fields.String(required=True, description="Email address of the customer"),
         "phone_number": fields.String(required=False, description="Phone number of the customer"),
+        "address": fields.String(required=False, description="Address of the customer"),
         "suspended": fields.Boolean(required=False, description="Is the customer suspended?"),
         # Add other fields as needed
     },
@@ -136,7 +136,7 @@ class CustomerCollection(Resource):
         app.logger.info("Customer with new id [%s] saved!", customer.id)
 
         # Return the location of the new Customer
-        location_url = url_for("get_customers", customer_id=customer.id, _external=True)
+        location_url = url_for("customer_resource", customer_id=customer.id, _external=True)
         return customer.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
 
 
@@ -229,7 +229,7 @@ class CustomerCollection(Resource):
         app.logger.info("Customer with new id [%s] saved!", customer.id)
 
         # Return the location of the new Customer
-        location_url = url_for("get_customers", customer_id=customer.id, _external=True)
+        location_url = url_for("customer_resource", customer_id=customer.id, _external=True)
         return customer.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
 
     @api.doc("list_customers")
