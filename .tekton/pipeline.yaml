@@ -18,6 +18,9 @@ spec:
     - name: IMAGE_NAME
       type: string
       description: The fully qualified image name to build
+    - name: APP_URL
+      type: string
+      description: The base URL of the deployed application
   workspaces:
     - name: pipeline-workspace
       description: Shared workspace for all pipeline tasks
@@ -104,6 +107,21 @@ spec:
           value: $(params.IMAGE_NAME)
         - name: manifest-dir
           value: "repo/k8s"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+    
+    # TASK 6: BDD TESTS
+    - name: bdd-tests
+      taskRef:
+        name: behave
+      runAfter:
+        - deploy
+      params:
+        - name: path
+          value: "repo/features"
+        - name: base-url
+          value: $(params.APP_URL)
       workspaces:
         - name: source
           workspace: pipeline-workspace
