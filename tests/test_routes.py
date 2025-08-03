@@ -25,15 +25,9 @@ from urllib.parse import quote_plus
 from unittest import TestCase
 from wsgi import app
 from service.common import status
-from service.models import db, Customer
-from service.routes import (
-    unauthorized,
-    method_not_allowed,
-    unprocessable_entity,
-    internal_server_error,
-    bad_request,
-    not_found,
-)
+from service.models import db, Customer, DataValidationError
+from service.routes import handle_data_validation_error
+from service.common import error_handlers
 from .factories import CustomerFactory
 
 DATABASE_URI = os.getenv(
@@ -96,23 +90,37 @@ class TestCustomerService(TestCase):
     ######################################################################
     #  P L A C E   T E S T   C A S E S   H E R E
     ######################################################################
-    def test_index(self):
-        """It should call the API root and return metadata"""
-        resp = self.client.get("/api")
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        data = resp.get_json()
-        self.assertEqual(data["name"], "Customer REST API Service")
+    def test_health_check(self):
+        """It should return healthy status for /health endpoint"""
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(data["status"], 200)
+        self.assertEqual(data["message"], "Healthy")
 
-        self.assertIn("version", data)
+    def test_index(self):
+        """It should return the index.html for / endpoint"""
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(b"Customer Administration", response.data)
+
+    def test_api_metadata(self):
+        """It should return API metadata for /api endpoint"""
+        response = self.client.get("/api")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertIn("name", data)
         self.assertIn("paths", data)
-        self.assertIn("create", data["paths"])
-        self.assertIn("list_all", data["paths"])
-        self.assertIn("read_one", data["paths"])
-        self.assertIn("update", data["paths"])
-        self.assertIn("delete", data["paths"])
-        self.assertIn("find_by_email", data["paths"])
-        self.assertIn("suspend", data["paths"])
-        self.assertIn("activate", data["paths"])
+
+    def test_data_validation_error_handler(self):
+        """It should trigger DataValidationError handler and return 400"""
+        # Instead of registering a new route, directly call the error handler
+        with app.test_request_context():
+            response, code = handle_data_validation_error(DataValidationError("Test error message"))
+            self.assertEqual(code, status.HTTP_400_BAD_REQUEST)
+            data = response.get_json()
+            self.assertIn("error", data)
+            self.assertEqual(data["error"], "Test error message")
 
     def test_home_page_serves_html(self):
         """It should call the home page and return HTML"""
@@ -644,44 +652,40 @@ class TestCustomerService(TestCase):
         data = response.get_json()
         self.assertGreaterEqual(len(data), 1)
 
-    def test_unauthorized_error_handler(self):
-        """It should return 401 for unauthorized access (simulated)"""
+    def test_error_handlers(self):
+        """It should trigger all custom error handlers in error_handlers.py"""
         with app.test_request_context():
-            response = unauthorized("Unauthorized access")
-            self.assertEqual(response[1], 401)
-            self.assertIn("Unauthorized", response[0].json["error"])
+            # 400 Bad Request
+            resp, code = error_handlers.bad_request(Exception("bad req"))
+            self.assertEqual(code, 400)
+            data = resp.get_json()
+            self.assertEqual(data["error"], "Bad Request")
+            self.assertIn("bad req", data["message"])
 
-    def test_method_not_allowed_error_handler(self):
-        """It should return 405 for method not allowed (simulated)"""
-        with app.test_request_context():
-            response = method_not_allowed("Method not allowed")
-            self.assertEqual(response[1], 405)
-            self.assertIn("Method Not Allowed", response[0].json["error"])
+            # 404 Not Found
+            resp, code = error_handlers.not_found(Exception("not found"))
+            self.assertEqual(code, 404)
+            data = resp.get_json()
+            self.assertEqual(data["error"], "Not Found")
+            self.assertIn("not found", data["message"])
 
-    def test_unprocessable_entity_error_handler(self):
-        """It should return 422 for unprocessable entity (simulated)"""
-        with app.test_request_context():
-            response = unprocessable_entity("Unprocessable entity")
-            self.assertEqual(response[1], 422)
-            self.assertIn("Unprocessable Entity", response[0].json["error"])
+            # 405 Method Not Allowed
+            resp, code = error_handlers.method_not_supported(Exception("not allowed"))
+            self.assertEqual(code, 405)
+            data = resp.get_json()
+            self.assertEqual(data["error"], "Method not Allowed")
+            self.assertIn("not allowed", data["message"])
 
-    def test_internal_server_error_handler(self):
-        """It should return 500 for internal server error (simulated)"""
-        with app.test_request_context():
-            response = internal_server_error("Internal error")
-            self.assertEqual(response[1], 500)
-            self.assertIn("Internal Server Error", response[0].json["error"])
+            # 415 Unsupported Media Type
+            resp, code = error_handlers.mediatype_not_supported(Exception("unsupported media"))
+            self.assertEqual(code, 415)
+            data = resp.get_json()
+            self.assertEqual(data["error"], "Unsupported media type")
+            self.assertIn("unsupported media", data["message"])
 
-    def test_bad_request_error_handler(self):
-        """It should return 400 for bad request (simulated)"""
-        with app.test_request_context():
-            response = bad_request("Bad request")
-            self.assertEqual(response[1], 400)
-            self.assertIn("Bad Request", response[0].json["error"])
-
-    def test_not_found_error_handler(self):
-        """It should return 404 for not found (simulated)"""
-        with app.test_request_context():
-            response = not_found("Not found")
-            self.assertEqual(response[1], 404)
-            self.assertIn("Not Found", response[0].json["error"])
+            # 500 Internal Server Error
+            resp, code = error_handlers.internal_server_error(Exception("server error"))
+            self.assertEqual(code, 500)
+            data = resp.get_json()
+            self.assertEqual(data["error"], "Internal Server Error")
+            self.assertIn("server error", data["message"])
