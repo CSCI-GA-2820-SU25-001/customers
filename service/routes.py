@@ -23,9 +23,9 @@ and Delete Customer
 
 from flask import jsonify, request, url_for, abort
 from flask import current_app as app  # Import Flask application
+from flask_restx import Api, Resource, fields
 from service.models import Customer, DataValidationError
 from service.common import status  # HTTP Status Codes
-from flask_restx import Api, Resource, fields, reqparse, inputs
 
 
 ######################################################################
@@ -110,42 +110,16 @@ customer_response_model = api.inherit(
 
 
 ######################################################################
-# CREATE A NEW CUSTOMER
-######################################################################
-@api.route("/customers")
-class CustomerCollection(Resource):
-    @api.doc("create_customers")
-    @api.expect(customer_model)
-    @api.marshal_with(customer_response_model, code=201)
-    def post(self):
-        """
-        Create a Customer
-        This endpoint will create a Customer based on the data in the body that is posted
-        """
-        app.logger.info("Request to Create a Customer...")
-        check_content_type("application/json")
-
-        customer = Customer()
-        # Get the data from the request and deserialize it
-        data = api.payload
-        app.logger.info("Processing: %s", data)
-        customer.deserialize(data)
-
-        # Save the new Customer to the database
-        customer.create()
-        app.logger.info("Customer with new id [%s] saved!", customer.id)
-
-        # Return the location of the new Customer
-        location_url = url_for("customer_resource", customer_id=customer.id, _external=True)
-        return customer.serialize(), status.HTTP_201_CREATED, {"Location": location_url}
-
-
-######################################################################
 # GET CUSTOMER
 ######################################################################
 @api.route("/customers/<int:customer_id>")
 @api.param("customer_id", "The Customer identifier")
 class CustomerResource(Resource):
+    """
+    Resource for handling single Customer operations (GET, PUT, DELETE).
+    Provides endpoints to retrieve, update, or delete a specific customer by ID.
+    """
+
     @api.doc("get_customers")
     @api.response(404, "Customer not found")
     @api.marshal_with(customer_response_model)
@@ -207,6 +181,11 @@ class CustomerResource(Resource):
 
 @api.route("/customers")
 class CustomerCollection(Resource):
+    """
+    Resource for handling Customer collection operations (POST, GET).
+    Provides endpoints to create a new customer or list/query all customers.
+    """
+
     @api.doc("create_customers")
     @api.expect(customer_model)
     @api.marshal_with(customer_response_model, code=201)
@@ -273,6 +252,11 @@ class CustomerCollection(Resource):
 @api.route("/customers/<int:customer_id>/suspend")
 @api.param("customer_id", "The Customer identifier")
 class CustomerSuspendResource(Resource):
+    """
+    Resource for suspending a Customer account.
+    Provides an endpoint to suspend a specific customer by ID.
+    """
+
     @api.doc("suspend_customer")
     @api.response(404, "Customer not found")
     @api.marshal_with(customer_response_model)
@@ -297,6 +281,11 @@ class CustomerSuspendResource(Resource):
 @api.route("/customers/<int:customer_id>/activate")
 @api.param("customer_id", "The Customer identifier")
 class CustomerActivateResource(Resource):
+    """
+    Resource for activating (unsuspending) a Customer account.
+    Provides an endpoint to activate a specific customer by ID.
+    """
+
     @api.doc("activate_customer")
     @api.response(404, "Customer not found")
     @api.marshal_with(customer_response_model)

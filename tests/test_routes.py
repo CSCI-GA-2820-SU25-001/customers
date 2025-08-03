@@ -26,6 +26,8 @@ from unittest import TestCase
 from wsgi import app
 from service.common import status
 from service.models import db, Customer, DataValidationError
+from service.routes import handle_data_validation_error
+from service.common import error_handlers
 from .factories import CustomerFactory
 
 DATABASE_URI = os.getenv(
@@ -113,7 +115,6 @@ class TestCustomerService(TestCase):
     def test_data_validation_error_handler(self):
         """It should trigger DataValidationError handler and return 400"""
         # Instead of registering a new route, directly call the error handler
-        from service.routes import handle_data_validation_error
         with app.test_request_context():
             response, code = handle_data_validation_error(DataValidationError("Test error message"))
             self.assertEqual(code, status.HTTP_400_BAD_REQUEST)
@@ -653,7 +654,6 @@ class TestCustomerService(TestCase):
 
     def test_error_handlers(self):
         """It should trigger all custom error handlers in error_handlers.py"""
-        from service.common import error_handlers
         with app.test_request_context():
             # 400 Bad Request
             resp, code = error_handlers.bad_request(Exception("bad req"))
