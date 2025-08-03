@@ -689,4 +689,3 @@ class TestCustomerService(TestCase):
             data = resp.get_json()
             self.assertEqual(data["error"], "Internal Server Error")
             self.assertIn("server error", data["message"])
-            
