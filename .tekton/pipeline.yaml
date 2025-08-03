@@ -92,3 +92,18 @@ spec:
       workspaces:
         - name: source
           workspace: pipeline-workspace
+
+    # TASK 5: DEPLOY (Deploy to Kubernetes)
+    - name: deploy
+      taskRef:
+        name: deploy-image
+      runAfter:
+        - buildah
+      params:
+        - name: image-name
+          value: $(params.IMAGE_NAME)
+        - name: manifest-dir
+          value: "repo/k8s"
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
