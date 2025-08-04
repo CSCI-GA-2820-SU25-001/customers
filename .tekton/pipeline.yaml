@@ -8,9 +8,10 @@ spec:
     - name: GIT_REPO
       type: string
       description: The Git repository to clone
+      default: https://github.com/CSCI-GA-2820-SU25-001/customers.git
     - name: GIT_REF
       type: string
-      default: "main"
+      default: "master"
       description: The Git branch, tag, or commit to check out
     - name: APP_NAME
       type: string
@@ -56,7 +57,24 @@ spec:
         - name: source
           workspace: pipeline-workspace
     
-    # TASK 4: BUILDAH (from teammate's branch)
+    # TASK 3: PYTEST (runs parallel to pylint)
+    - name: pytest
+      taskRef:
+        name: pytest-env
+      runAfter:
+        - git-clone  # parallel to pylint
+      params:
+        - name: pytest-args
+          value: []  
+        - name: secret-name
+          value: postgres-creds  
+        - name: secret-key
+          value: database_uri 
+      workspaces:
+        - name: source
+          workspace: pipeline-workspace
+
+    # TASK 4: BUILDAH 
     - name: buildah
       taskRef:
         params:
@@ -68,7 +86,8 @@ spec:
             value: openshift-pipelines
         resolver: cluster
       runAfter:
-        - pylint  # Fixed dependency
+        - pylint
+        - pytest
       params:
         - name: IMAGE
           value: $(params.IMAGE_NAME)

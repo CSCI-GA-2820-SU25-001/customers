@@ -12,7 +12,7 @@ spec:
       description: The Git repository to clone
     - name: revision
       type: string
-      default: "main"
+      default: "master"
       description: The Git branch, tag, or commit to check out
   workspaces:
     - name: output
@@ -25,6 +25,7 @@ spec:
         set -e
         echo "Cloning $(params.repo-url) at revision $(params.revision)"
         cd $(workspaces.output.path)
+        rm -rf repo
         git clone $(params.repo-url) repo
         cd repo
         git checkout $(params.revision)
@@ -99,6 +100,7 @@ spec:
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
+
   name: pytest-env
   labels:
     app.kubernetes.io/version: "0.1"
@@ -136,11 +138,11 @@ spec:
       image: quay.io/rofrano/python:3.11-slim
       workingDir: $(workspaces.source.path)
       env:
-       - name: DATABASE_URI
-         valueFrom:
-           secretKeyRef:
-             name: $(params.secret-name)
-             key: $(params.secret-key)
+      - name: DATABASE_URI
+        valueFrom:
+          secretKeyRef:
+            name: $(params.secret-name)
+            key: $(params.secret-key)
       script: |
         #!/bin/bash
         set -e
