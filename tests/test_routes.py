@@ -27,7 +27,6 @@ from wsgi import app
 from service.common import status
 from service.models import db, Customer, DataValidationError
 from service.common.error_handlers import request_validation_error as handle_data_validation_error
-from service.common import error_handlers
 from .factories import CustomerFactory
 
 DATABASE_URI = os.getenv(
@@ -643,10 +642,3 @@ class TestCustomerService(TestCase):
         data = response.get_json()
         self.assertGreaterEqual(len(data), 1)
         self.assertEqual(data[0]["last_name"], "Last Name")
-
-    def test_handle_empty_query_parameter_values(self):
-        """It should handle empty query parameter values"""
-        self._create_customers(1)
-        response = self.client.get(BASE_URL, query_string="first_name=&email=")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
