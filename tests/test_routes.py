@@ -26,7 +26,7 @@ from unittest import TestCase
 from wsgi import app
 from service.common import status
 from service.models import db, Customer, DataValidationError
-from service.routes import handle_data_validation_error
+from service.common.error_handlers import request_validation_error as handle_data_validation_error
 from service.common import error_handlers
 from .factories import CustomerFactory
 

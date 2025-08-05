@@ -20,6 +20,7 @@ spec:
       description: The fully qualified image name to build
     - name: APP_URL
       type: string
+      default: "http://0.0.0.0:8080"
       description: The base URL of the deployed application
   workspaces:
     - name: pipeline-workspace
