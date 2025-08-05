@@ -16,9 +16,11 @@ spec:
     - name: APP_NAME
       type: string
       description: The name of the application
+      default: customer
     - name: IMAGE_NAME
       type: string
       description: The fully qualified image name to build
+      default: image-registry.openshift-image-registry.svc:5000/$ (context.pipelineRun.namespace)/$(params.APP_NAME):latest
     - name: APP_URL
       type: string
       description: The base URL of the deployed application
