@@ -39,7 +39,7 @@ spec:
       workspaces:
         - name: output
           workspace: pipeline-workspace
-    
+
     # TASK 2: PYLINT (renamed from lint)
     - name: pylint
       taskRef:
@@ -48,9 +48,9 @@ spec:
         - git-clone
       params:
         - name: path
-          value: "repo/service"
+          value:   repo
         - name: args
-          value: 
+          value:
             - "--fail-under=7.0"
             - "--max-line-length=127"
             - "--disable=C0114,C0115,C0116"
@@ -58,25 +58,28 @@ spec:
       workspaces:
         - name: source
           workspace: pipeline-workspace
-    
+
     # TASK 3: PYTEST (runs parallel to pylint)
     - name: pytest
       taskRef:
         name: pytest-env
       runAfter:
-        - git-clone  # parallel to pylint
-      params:
-        - name: pytest-args
-          value: []  
-        - name: secret-name
-          value: postgres-creds  
-        - name: secret-key
-          value: database_uri 
+        - git-clone
       workspaces:
         - name: source
           workspace: pipeline-workspace
-
-    # TASK 4: BUILDAH 
+      params:
+        - name: pytest-args
+          value:
+            - "service" # This tells pytest to look for tests in the 'service' directory
+        - name: secret-name
+          value: postgres-creds
+        - name: secret-key
+          value: database-uri
+      # Add this workingDir to the task definition
+      workingDir: $(workspaces.source.path)/repo
+      
+    # TASK 4: BUILDAH
     - name: buildah
       taskRef:
         params:
@@ -98,7 +101,7 @@ spec:
         - name: BUILD_ARGS
           value: []
         - name: CONTEXT
-          value: "repo"  # Added repo prefix
+          value: "repo"
         - name: STORAGE_DRIVER
           value: vfs
         - name: FORMAT
@@ -131,7 +134,7 @@ spec:
       workspaces:
         - name: source
           workspace: pipeline-workspace
-    
+
     # TASK 6: BDD TESTS
     - name: bdd-tests
       taskRef:
@@ -140,7 +143,7 @@ spec:
         - deploy
       params:
         - name: path
-          value: "repo/features"
+          value: repo/features
         - name: base-url
           value: $(params.APP_URL)
       workspaces:
