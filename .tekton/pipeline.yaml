@@ -23,6 +23,7 @@ spec:
       default: image-registry.openshift-image-registry.svc:5000/$ (context.pipelineRun.namespace)/$(params.APP_NAME):latest
     - name: APP_URL
       type: string
+      default: "https://customers-route-ujjval2002chopra-dev.apps.rm2.thpm.p1.openshiftapps.com/"
       description: The base URL of the deployed application
   workspaces:
     - name: pipeline-workspace

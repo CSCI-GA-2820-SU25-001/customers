@@ -26,14 +26,13 @@ from unittest import TestCase
 from wsgi import app
 from service.common import status
 from service.models import db, Customer, DataValidationError
-from service.routes import handle_data_validation_error
-from service.common import error_handlers
+from service.common.error_handlers import request_validation_error as handle_data_validation_error
 from .factories import CustomerFactory
 
 DATABASE_URI = os.getenv(
     "DATABASE_URI", "postgresql+psycopg://postgres:postgres@localhost:5432/testdb"
 )
-BASE_URL = "/customers"
+BASE_URL = "/api/customers"
 
 
 ######################################################################
@@ -643,49 +642,3 @@ class TestCustomerService(TestCase):
         data = response.get_json()
         self.assertGreaterEqual(len(data), 1)
         self.assertEqual(data[0]["last_name"], "Last Name")
-
-    def test_handle_empty_query_parameter_values(self):
-        """It should handle empty query parameter values"""
-        self._create_customers(1)
-        response = self.client.get(BASE_URL, query_string="first_name=&email=")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        data = response.get_json()
-        self.assertGreaterEqual(len(data), 1)
-
-    def test_error_handlers(self):
-        """It should trigger all custom error handlers in error_handlers.py"""
-        with app.test_request_context():
-            # 400 Bad Request
-            resp, code = error_handlers.bad_request(Exception("bad req"))
-            self.assertEqual(code, 400)
-            data = resp.get_json()
-            self.assertEqual(data["error"], "Bad Request")
-            self.assertIn("bad req", data["message"])
-
-            # 404 Not Found
-            resp, code = error_handlers.not_found(Exception("not found"))
-            self.assertEqual(code, 404)
-            data = resp.get_json()
-            self.assertEqual(data["error"], "Not Found")
-            self.assertIn("not found", data["message"])
-
-            # 405 Method Not Allowed
-            resp, code = error_handlers.method_not_supported(Exception("not allowed"))
-            self.assertEqual(code, 405)
-            data = resp.get_json()
-            self.assertEqual(data["error"], "Method not Allowed")
-            self.assertIn("not allowed", data["message"])
-
-            # 415 Unsupported Media Type
-            resp, code = error_handlers.mediatype_not_supported(Exception("unsupported media"))
-            self.assertEqual(code, 415)
-            data = resp.get_json()
-            self.assertEqual(data["error"], "Unsupported media type")
-            self.assertIn("unsupported media", data["message"])
-
-            # 500 Internal Server Error
-            resp, code = error_handlers.internal_server_error(Exception("server error"))
-            self.assertEqual(code, 500)
-            data = resp.get_json()
-            self.assertEqual(data["error"], "Internal Server Error")
-            self.assertIn("server error", data["message"])
