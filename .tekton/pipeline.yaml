@@ -20,7 +20,7 @@ spec:
     - name: IMAGE_NAME
       type: string
       description: The fully qualified image name to build
-      default: image-registry.openshift-image-registry.svc:5000/$ (context.pipelineRun.namespace)/$(params.APP_NAME):latest
+      default: image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.APP_NAME):latest
     - name: APP_URL
       type: string
       default: "https://customers-route-ujjval2002chopra-dev.apps.rm2.thpm.p1.openshiftapps.com/"
@@ -72,7 +72,7 @@ spec:
       params:
         - name: pytest-args
           value:
-            - "service" # This tells pytest to look for tests in the 'service' directory
+            - "tests" # This tells pytest to look for tests in the 'service' directory
         - name: secret-name
           value: postgres-creds
         - name: secret-key

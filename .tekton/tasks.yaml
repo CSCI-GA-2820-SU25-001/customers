@@ -165,11 +165,15 @@ spec:
         # Make sure pytest is installed
         python -m pip install pytest
 
+        python -m pip install pytest-cov pytest-pspec
+
         echo "***** Running Tests *****"
         pytest --version
-        pytest
+
+        # Run pytest with all args passed from pipeline param
+        pytest "$@"
       args:
-        - "$(params.pytest-args)"
+      - "$(params.pytest-args)"
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -291,7 +295,7 @@ spec:
   steps:
     - name: behave
       image: quay.io/rofrano/pipeline-selenium
-      workingDir: "$(workspaces.source.path)"
+      workingDir: "$(workspaces.source.path)/repo"
       env:
        - name: BASE_URL
          value: "$(params.base-url)"
@@ -303,16 +307,11 @@ spec:
         #!/bin/bash
         set -e
         export PATH=$PATH:$HOME/.local/bin:
-        echo "***** Installing dependencies *****"
-        if [ -e "poetry.lock" ]; then
-          echo "Found poetry.lock file: using poetry"
-          python -m pip install poetry poetry-plugin-export
-          poetry export --with=dev -f requirements.txt --output requirements.txt
-        elif [ -e "Pipfile" ]; then
-          echo "Found Pipfile file: using pipenv ..."
-          python -m pip install --upgrade pip pipenv
-          pipenv requirements --dev > requirements.txt
-        fi
-        python -m pip install --user -r requirements.txt
+
+        echo "***** Installing dependencies with pipenv *****"
+        python -m pip install --upgrade pip pipenv
+        pipenv install --dev
+
         echo "***** Running Tests *****"
-        behave
+        # Run behave through pipenv to use the correct venv
+        pipenv run behave

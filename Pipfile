@@ -15,6 +15,9 @@ gunicorn = "~=23.0.0"
 click = "*"
 psycopg2-binary = "*"
 flask-restx = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-pspec = "*"
 
 [dev-packages]
 black = "~=25.1.0"
