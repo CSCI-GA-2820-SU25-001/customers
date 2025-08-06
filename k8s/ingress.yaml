@@ -13,6 +13,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: customers  # Fixed: service name is 'customers' not 'customer'
+            name: customers
             port:
               number: 8080
