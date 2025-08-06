@@ -331,18 +331,19 @@ def check_content_type(content_type) -> None:
 # These mirror the Flask-RESTX routes but without /api prefix
 ######################################################################
 
+
 @app.route("/customers", methods=["GET"])
 def list_customers_bdd():
     """BDD-compatible route for listing customers"""
     app.logger.info("Request for customer list (BDD route)")
-    
+
     # Same query logic as Flask-RESTX route
     email = request.args.get("email")
-    first_name = request.args.get("first_name") 
+    first_name = request.args.get("first_name")
     last_name = request.args.get("last_name")
     phone_number = request.args.get("phone_number")
     suspended = request.args.get("suspended")
-    
+
     query = Customer.query
     if email:
         query = query.filter(Customer.email == email)
@@ -355,7 +356,7 @@ def list_customers_bdd():
     if suspended is not None:
         suspended_bool = suspended.lower() in ('true', '1', 'yes')
         query = query.filter(Customer.suspended == suspended_bool)
-        
+
     customers = query.all()
     results = [customer.serialize() for customer in customers]
     app.logger.info("Returning %d customers (BDD route)", len(results))
@@ -366,17 +367,17 @@ def list_customers_bdd():
 def create_customer_bdd():
     """BDD-compatible route for creating customers"""
     app.logger.info("Request to Create a Customer (BDD route)")
-    
+
     if not request.is_json:
         abort(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Content-Type must be application/json")
-    
+
     customer = Customer()
     data = request.get_json()
     app.logger.info("Processing: %s", data)
     customer.deserialize(data)
     customer.create()
     app.logger.info("Customer with new id [%s] saved! (BDD route)", customer.id)
-    
+
     location_url = url_for("get_customer_bdd", customer_id=customer.id, _external=True)
     return jsonify(customer.serialize()), status.HTTP_201_CREATED, {"Location": location_url}
 
@@ -385,11 +386,11 @@ def create_customer_bdd():
 def get_customer_bdd(customer_id):
     """BDD-compatible route for getting a customer"""
     app.logger.info("Request to Retrieve customer with id [%s] (BDD route)", customer_id)
-    
+
     customer = Customer.find(customer_id)
     if not customer:
         abort(status.HTTP_404_NOT_FOUND, f"Customer with id '{customer_id}' was not found.")
-    
+
     app.logger.info("Returning customer: %s %s (BDD route)", customer.first_name, customer.last_name)
     return jsonify(customer.serialize()), status.HTTP_200_OK
 
@@ -398,14 +399,14 @@ def get_customer_bdd(customer_id):
 def update_customer_bdd(customer_id):
     """BDD-compatible route for updating a customer"""
     app.logger.info("Request to Update customer with id [%s] (BDD route)", customer_id)
-    
+
     if not request.is_json:
         abort(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Content-Type must be application/json")
-    
+
     customer = Customer.find(customer_id)
     if not customer:
         abort(status.HTTP_404_NOT_FOUND, f"Customer with id '{customer_id}' was not found.")
-        
+
     data = request.get_json()
     customer.deserialize(data)
     customer.update()
@@ -417,7 +418,7 @@ def update_customer_bdd(customer_id):
 def delete_customer_bdd(customer_id):
     """BDD-compatible route for deleting a customer"""
     app.logger.info("Request to Delete customer with id [%s] (BDD route)", customer_id)
-    
+
     customer = Customer.find(customer_id)
     if customer:
         customer.delete()
@@ -429,11 +430,11 @@ def delete_customer_bdd(customer_id):
 def suspend_customer_bdd(customer_id):
     """BDD-compatible route for suspending a customer"""
     app.logger.info("Request to suspend customer with id [%s] (BDD route)", customer_id)
-    
+
     customer = Customer.find(customer_id)
     if not customer:
         abort(status.HTTP_404_NOT_FOUND, f"Customer with id '{customer_id}' was not found.")
-    
+
     customer.suspended = True
     customer.update()
     app.logger.info("Customer with ID [%s] suspended (BDD route)", customer_id)
@@ -444,11 +445,11 @@ def suspend_customer_bdd(customer_id):
 def activate_customer_bdd(customer_id):
     """BDD-compatible route for activating a customer"""
     app.logger.info("Request to activate customer with id [%s] (BDD route)", customer_id)
-    
+
     customer = Customer.find(customer_id)
     if not customer:
         abort(status.HTTP_404_NOT_FOUND, f"Customer with id '{customer_id}' was not found.")
-    
+
     customer.suspended = False
     customer.update()
     app.logger.info("Customer with ID [%s] activated (BDD route)", customer_id)
