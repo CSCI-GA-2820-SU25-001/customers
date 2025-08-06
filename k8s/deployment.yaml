@@ -22,7 +22,7 @@ spec:
       restartPolicy: Always
       containers:
       - name: customer
-        image: cluster-registry:5000/customer:1.0
+        image: image-registry.openshift-image-registry.svc:5000/ujjval2002chopra-dev/customer:latest
         # image: customer
         imagePullPolicy: IfNotPresent
         ports:
