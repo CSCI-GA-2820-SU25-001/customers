@@ -37,9 +37,11 @@ spec:
                   configMapKeyRef:
                     name: postgres-config
                     key: postgres_db
+            - name: PGDATA # Explicitly define PGDATA to match mountPath
+              value: /var/lib/postgresql/data/pgdata
           volumeMounts:
           - name: postgres-storage
-            mountPath: /var/lib/postgresql/data
+            mountPath: /var/lib/postgresql/data # Changed mountPath
           resources:
             limits:
               cpu: "0.50"
@@ -47,11 +49,11 @@ spec:
             requests:
               cpu: "0.25"
               memory: "64Mi"
-      volumeClaimTemplates:
-      - metadata:
-          name: postgres-storage
-        spec:
-          accessModes: [ "ReadWriteOnce" ]
-          resources:
-            requests:
-              storage: 1Gi
+  volumeClaimTemplates: # Added this section for StatefulSet storage management
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
