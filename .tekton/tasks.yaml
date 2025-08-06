@@ -24,11 +24,11 @@ spec:
         #!/bin/sh
         set -e
         echo "Cloning $(params.repo-url) at revision $(params.revision)"
-        cd $(workspaces.output.path)
+        cd "$(workspaces.output.path)"
         rm -rf repo
-        git clone $(params.repo-url) repo
+        git clone "$(params.repo-url)" repo
         cd repo
-        git checkout $(params.revision)
+        git checkout "$(params.revision)"
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -47,8 +47,8 @@ spec:
     - name: source
       description: The workspace with the source code.
   description: >-
-    Use to run pylint on the provided input source. 
-    If Poetry or Pipenv is being used it will detect 
+    Use to run pylint on the provided input source.
+    If Poetry or Pipenv is being used it will detect
     the poetry.lock and Pipfile file and install using them.
   params:
     - name: image
@@ -73,7 +73,6 @@ spec:
         #!/bin/bash
         set -e
         export PATH=$PATH:$HOME/.local/bin:
-
         echo "***** Installing dependencies *****"
         if [ -e "poetry.lock" ]; then
           echo "Found poetry.lock file: using poetry ..."
@@ -87,20 +86,18 @@ spec:
         elif [ -n "$(params.requirements-file)" ] && [ -e "$(params.requirements-file)" ]; then
           python -m pip install --user -r "$(params.requirements-file)"
         fi
-
         # Make sure pylint is installed
         python -m pip install pylint
-
         echo "***** Running Linting *****"
+        # --- FIX: Add the project's root to the Python path ---
+        export PYTHONPATH=$(workspaces.source.path)
         pylint $@ "$(params.path)"
       args:
         - "$(params.args)"
-
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-
   name: pytest-env
   labels:
     app.kubernetes.io/version: "0.1"
@@ -116,7 +113,6 @@ spec:
   description: >-
     This task can be used to perform unit tests with pytest.
     It supports both requirements.txt, Pipfile, & poetry.lock files.
-
     It also has the ability to create an environment variable
     that is sourced from a Secret. This allows you to define
     credentials that can be used to connect to a test database.
@@ -136,18 +132,17 @@ spec:
   steps:
     - name: pytest
       image: quay.io/rofrano/python:3.11-slim
-      workingDir: $(workspaces.source.path)
+      workingDir: "$(workspaces.source.path)"
       env:
       - name: DATABASE_URI
         valueFrom:
           secretKeyRef:
-            name: $(params.secret-name)
-            key: $(params.secret-key)
+            name: "$(params.secret-name)"
+            key: "$(params.secret-key)"
       script: |
         #!/bin/bash
         set -e
         export PATH=$PATH:$HOME/.local/bin:
-
         echo "***** Installing dependencies *****"
         if [ -e "poetry.lock" ]; then
           echo "Found poetry.lock file: using poetry ..."
@@ -158,19 +153,14 @@ spec:
           echo "Found Pipfile file: using pipenv ..."
           python -m pip install --upgrade pip pipenv
           pipenv install --system --dev
-        elif -e "requirements.txt" ]; then
+        elif [ -e "requirements.txt" ]; then
           python -m pip install --user -r requirements.txt
         fi
-
-        # Make sure pylint is installed
+        # Make sure pytest is installed
         python -m pip install pytest
-
         echo "***** Running Tests *****"
         pytest --version
         pytest
-      args:
-        - "$(params.pytest-args)"
-
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -186,10 +176,10 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   workspaces:
-  - name: source  
+  - name: source
   description: >-
     This task will update the deployment.yaml with the latest image name
-    and then apply that yaml file and it's service file.
+    and then apply that yaml file and it’s service file.
   params:
   - name: image-name
     description: The fully qualified name of the new image to deploy
@@ -201,38 +191,31 @@ spec:
   steps:
     - name: deploy
       image: quay.io/openshift/origin-cli:latest
-      workingDir: /workspace/source 
+      workingDir: /workspace/source
       command: ["/bin/bash", "-c"]
       args:
         - |-
           #!/bin/bash
           set -e
-
-          echo Applying manifests in $(inputs.params.manifest-dir) directory
-
+          echo Applying manifests in "$(params.manifest-dir)" directory
           echo "**********************************************************************"
           echo "Installing YQ..."
           echo "**********************************************************************"
           wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           chmod a+x /usr/bin/yq
-
-          echo "*********************  DEPLOYMENT  ***********************"
-          echo "Deploying $(inputs.params.image-name) ..."
-
-          yq -e -i '.spec.template.spec.containers[0].image="$(inputs.params.image-name)"' $(inputs.params.manifest-dir)/deployment.yaml
-          cat $(inputs.params.manifest-dir)/deployment.yaml
-
+          echo "********************* DEPLOYMENT  ***********************"
+          echo "Deploying $(params.image-name) ..."
+          yq -e -i '.spec.template.spec.containers[0].image="$(params.image-name)"' "$(params.manifest-dir)"/deployment.yaml
+          cat "$(params.manifest-dir)"/deployment.yaml
           echo "************************************************************"
           echo "OC APPLY..."
-          oc apply -f $(inputs.params.manifest-dir)/deployment.yaml
-          oc apply -f $(inputs.params.manifest-dir)/service.yaml
-
+          oc apply -f "$(params.manifest-dir)"/deployment.yaml
+          oc apply -f "$(params.manifest-dir)"/service.yaml
           echo "************************************************************"
           sleep 3
           echo "Pods:"
           oc get pods
           echo ""
-
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -248,7 +231,7 @@ metadata:
     tekton.dev/platforms: "linux/amd64"
 spec:
   workspaces:
-  - name: source  
+  - name: source
   description: >-
     This task will deploy all of the yaml files in the manifest folder.
   params:
@@ -259,14 +242,13 @@ spec:
   steps:
     - name: apply
       image: quay.io/openshift/origin-cli:latest
-      workingDir: /workspace/source 
+      workingDir: /workspace/source
       command: ["/bin/bash", "-c"]
       args:
         - |-
-          echo Applying manifests in $(inputs.params.manifest-dir) directory
-          oc apply -f $(inputs.params.manifest-dir)
+          echo Applying manifests in "$(params.manifest-dir)" directory
+          oc apply -f "$(params.manifest-dir)"
           echo -----------------------------------
-
 ---
 apiVersion: tekton.dev/v1beta1
 kind: Task
@@ -300,19 +282,18 @@ spec:
   steps:
     - name: behave
       image: quay.io/rofrano/pipeline-selenium
-      workingDir: $(workspaces.source.path)
+      workingDir: "$(workspaces.source.path)"
       env:
        - name: BASE_URL
-         value: $(params.base-url)
+         value: "$(params.base-url)"
        - name: WAIT_SECONDS
-         value: $(params.wait-seconds)
+         value: "$(params.wait-seconds)"
        - name: DRIVER
-         value: $(params.driver)
+         value: "$(params.driver)"
       script: |
         #!/bin/bash
         set -e
         export PATH=$PATH:$HOME/.local/bin:
-
         echo "***** Installing dependencies *****"
         if [ -e "poetry.lock" ]; then
           echo "Found poetry.lock file: using poetry"
@@ -324,6 +305,5 @@ spec:
           pipenv requirements --dev > requirements.txt
         fi
         python -m pip install --user -r requirements.txt
-
         echo "***** Running Tests *****"
         behave
