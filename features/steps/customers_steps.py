@@ -39,7 +39,7 @@ def step_impl(context):
     """Delete all customers and load new ones"""
 
     # Get a list all of the customers
-    rest_endpoint = f"{context.base_url}/customers"
+    rest_endpoint = f"{context.base_url}/api/customers"
     context.resp = requests.get(rest_endpoint, timeout=WAIT_TIMEOUT)
     expect(context.resp.status_code).equal_to(HTTP_200_OK)
     # and delete them one by one
