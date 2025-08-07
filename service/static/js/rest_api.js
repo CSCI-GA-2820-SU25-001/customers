@@ -60,7 +60,7 @@ $(function () {
         
         let ajax = $.ajax({
             type: "POST",
-            url: "/customers",
+            url: "/api/customers",
             contentType: "application/json",
             data: JSON.stringify(data),
         });
@@ -103,7 +103,7 @@ $(function () {
 
         let ajax = $.ajax({
                 type: "PUT",
-                url: `/customers/${customer_id}`,
+                url: `/api/customers/${customer_id}`,
                 contentType: "application/json",
                 data: JSON.stringify(data)
             })
@@ -131,7 +131,7 @@ $(function () {
 
         let ajax = $.ajax({
             type: "GET",
-            url: `/customers/${customer_id}`,
+            url: `/api/customers/${customer_id}`,
             contentType: "application/json",
             data: ''
         })
@@ -160,7 +160,7 @@ $(function () {
 
         let ajax = $.ajax({
             type: "DELETE",
-            url: `/customers/${customer_id}`,
+            url: `/api/customers/${customer_id}`,
             contentType: "application/json",
             data: '',
         })
@@ -245,7 +245,7 @@ $(function () {
 
         let ajax = $.ajax({
             type: "GET",
-            url: `/customers?${queryString}`,
+            url: `/api/customers?${queryString}`,
             contentType: "application/json",
             data: ''
         })
@@ -302,7 +302,7 @@ $(function () {
     function performSuspend(id) {
         $.ajax({
             type: "PUT",
-            url: `/customers/${id}/suspend`,
+            url: `/api/customers/${id}/suspend`,
             contentType: "application/json"
         }).done(function(res) {
             $("#flash_message").text("Customer suspended successfully");
@@ -320,7 +320,7 @@ $(function () {
     function performActivate(id) {
         $.ajax({
             type: "PUT",
-            url: `/customers/${id}/activate`,
+            url: `/api/customers/${id}/activate`,
             contentType: "application/json"
         }).done(function(res) {
             $("#flash_message").text("Customer activated successfully");
@@ -386,7 +386,7 @@ $(function () {
     $("#count-customers-btn").click(function() {
       $.ajax({
         type: "GET",
-        url: "/customers",
+        url: "/api/customers",
         contentType: "application/json"
       }).done(function(res) {
         flash_message("Total customers: " + res.length);
@@ -402,7 +402,7 @@ $(function () {
     function loadAllCustomers() {
       $.ajax({
         type: "GET",
-        url: "/customers",
+        url: "/api/customers",
         contentType: "application/json"
       }).done(function(customers) {
         const tbody = $("#customer-table tbody");
@@ -454,7 +454,7 @@ $(function () {
       if (confirm('Are you sure you want to delete this customer?')) {
         $.ajax({
           type: "DELETE",
-          url: `/customers/${id}`,
+          url: `/api/customers/${id}`,
           contentType: "application/json"
         }).done(function() {
           flash_message("Customer deleted successfully");
